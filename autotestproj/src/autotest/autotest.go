@@ -1,24 +1,9 @@
 package main
 
-/*
-#cgo CFLAGS: -I. -I/home/ych/zr9101/install/npa/lib/include/
-#cgo LDFLAGS:-L/home/ych/zr9101/install/npa/lib/ -lstdc++ -lc -lpthread -ldl -lnpa
-#include "platform.h"
-#include "NpaLib.h"
-#include <stdio.h>
-#include <string.h>
-#include <signal.h>
-#include <unistd.h>
-#include "SncpServer.h"
-#include "common.h"
-*/
-import "C"
-
-//import "unsafe"
-
 import (
 	"common"
 	"fmt"
+	"npa"
 	"os"
 	"strconv"
 )
@@ -33,8 +18,6 @@ func main() {
 		Usage()
 		return
 	}
-
-	C.Cm_NicIsOnLine()
 
 	for index, value := range args {
 		fmt.Printf("args[%d] = %s\n", index, value)
@@ -57,6 +40,8 @@ func main() {
 		common.Go_packet()
 	case "npa":
 		fmt.Println("enter: ", args[1])
+		ret := npa.Npa_init()
+		fmt.Println("Npa_init: ", ret)
 	case "ppp":
 		fmt.Println("enter: ", args[1])
 	case "gopacket":
