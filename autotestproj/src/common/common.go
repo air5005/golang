@@ -10,9 +10,6 @@ import (
 	"github.com/google/gopacket/pcap"
 )
 
-var iface string
-var fname string
-
 var lastTS time.Time
 var lastSend time.Time
 
@@ -83,7 +80,7 @@ func writePacket(handle *pcap.Handle, buf []byte) error {
 }
 
 func pcapInfo(filename string) (start time.Time, end time.Time, packets int, size int) {
-	handleRead, err := pcap.OpenOffline(fname)
+	handleRead, err := pcap.OpenOffline(filename)
 	if err != nil {
 		log.Fatal("PCAP OpenOffline error (handle to read packet):", err)
 	}
@@ -122,12 +119,7 @@ func pcapInfo(filename string) (start time.Time, end time.Time, packets int, siz
 	return start, end, packets, size
 }
 
-func Com_sendpcap(ethname string, file string, fast bool) int {
-	iface = ethname
-	fname = file
-
-	fmt.Println(ethname, file, fast)
-
+func Com_sendpcap(iface string, fname string, fast bool) int {
 	// Open PCAP file + handle potential BPF Filter
 	handleRead, err := pcap.OpenOffline(fname)
 	if err != nil {

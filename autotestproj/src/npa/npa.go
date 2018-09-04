@@ -17,6 +17,7 @@ package npa
 import "C"
 
 import (
+	"common"
 	"fmt"
 	"unsafe"
 )
@@ -64,6 +65,8 @@ type Npastat struct {
 	JabberPackets      uint64
 	DedupDropPackets   uint64
 	AclDropPackets     uint64
+	ModSrcMacPackets   uint64
+	ModDstMacPackets   uint64
 }
 
 type MacCfg struct {
@@ -85,6 +88,38 @@ const (
 )
 
 const Npa_max_port_num = 2
+
+const (
+	Npa_test_acl = iota
+	Npa_test_dedup_no_ignore
+	Npa_test_dedup_ignore_mac
+	Npa_test_dedup_ignore_ttl
+	Npa_test_dedup_ignore_srcip
+	Npa_test_dedup_ignore_dstip
+	Npa_test_dedup_ignore_srcport
+	Npa_test_dedup_ignore_dstport
+	Npa_test_dedup_ignore_vxlan
+	Npa_test_mac_modifed
+)
+
+var testpcap = [Npa_test_mac_modifed + 1]string{
+	"acl_test_pkt.pcap",
+	"dedup_test_pkt_org.pcap",
+	"dedup_test_pkt_diff_mac.pcap",
+	"dedup_test_pkt_diff_ttl.pcap",
+	"dedup_test_pkt_diff_src_ip.pcap",
+	"dedup_test_pkt_diff_dst_ip.pcap",
+	"dedup_test_pkt_diff_src_port.pcap",
+	"dedup_test_pkt_diff_dst_port.pcap",
+	"dedup_test_pkt_diff_vxlan.pcap",
+	"dedup_test_pkt_org.pcap",
+}
+
+var (
+	npa_iface    string
+	npa_pcappath string
+	npa_fast     bool
+)
 
 func Npa_setdedup(portid uint16, cfg DedupCfg) (ret int) {
 	var ret_c C.int
@@ -175,6 +210,8 @@ func Npa_getstat(portid uint16) (ret int, stat Npastat) {
 	stat.JabberPackets = (uint64)(stat_c.ulJabberPackets)
 	stat.DedupDropPackets = (uint64)(stat_c.ulDedupDropPackets)
 	stat.AclDropPackets = (uint64)(stat_c.ulAclDropPackets)
+	stat.ModSrcMacPackets = (uint64)(stat_c.ulModifedSrcMacPackets)
+	stat.ModDstMacPackets = (uint64)(stat_c.ulModifedDstMacPackets)
 
 	//	fmt.Println("AllPackets        :", stat.AllPackets)
 	//	fmt.Println("AllBytes          :", stat.AllBytes)
@@ -213,6 +250,8 @@ func Npa_getstat(portid uint16) (ret int, stat Npastat) {
 	//	fmt.Println("JabberPackets     :", stat.JabberPackets)
 	//	fmt.Println("DedupDropPackets  :", stat.DedupDropPackets)
 	//	fmt.Println("AclDropPackets    :", stat.AclDropPackets)
+	//	fmt.Println("ModSrcMacPackets  :", stat.ModSrcMacPackets)
+	//	fmt.Println("ModDstMacPackets  :", stat.ModDstMacPackets)
 
 	return ret, stat
 }
@@ -429,8 +468,41 @@ func Npa_InitCli() int {
 	return 0
 }
 
-func Npa_init() int {
+func Npa_TestPacket() int {
+
+	for index := Npa_test_acl; index <= Npa_test_mac_modifed; index++ {
+		switch index {
+		case Npa_test_acl:
+		case Npa_test_dedup_no_ignore:
+		case Npa_test_dedup_ignore_mac:
+		case Npa_test_dedup_ignore_ttl:
+		case Npa_test_dedup_ignore_srcip:
+		case Npa_test_dedup_ignore_dstip:
+		case Npa_test_dedup_ignore_srcport:
+		case Npa_test_dedup_ignore_dstport:
+		case Npa_test_dedup_ignore_vxlan:
+		case Npa_test_mac_modifed:
+			common.Com_sendpcap(npa_iface, npa_pcappath+testpcap[index], npa_fast)
+		default:
+			fmt.Println("err para, index:", index)
+		}
+	}
+
+	return 0
+}
+
+func Npa_init(iface string, pcappath string, fast bool) int {
 	var ret_c C.int
+
+	fmt.Println(iface, pcappath, fast)
+
+	npa_iface = iface
+	npa_pcappath = pcappath
+	npa_fast = fast
+
+	//	for index := Npa_test_acl; index <= Npa_test_mac_modifed; index++ {
+	//		fmt.Println(index, npa_pcappath+testpcap[index])
+	//	}
 
 	ret_c = C.Cm_NicIsOnLine()
 	if ret_c != 1 {
