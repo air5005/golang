@@ -12,11 +12,13 @@ package npa
 #include <unistd.h>
 #include "common.h"
 #include "PLog.h"
+#include "SncpServer.h"
 */
 import "C"
 
 import (
 	"fmt"
+	"unsafe"
 )
 
 type DedupCfg struct {
@@ -411,6 +413,22 @@ func Npa_TestConfig() int {
 	return 0
 }
 
+func Npa_InitCli() int {
+	var ret_c C.int
+
+	ret_c = C.NpaSncpServerInit()
+	if ret_c != 0 {
+		fmt.Println("NpaSncpServerInit fail")
+		return -1
+	} else {
+		fmt.Println("NpaSncpServerInit success")
+	}
+
+	go C.SncpProcessCmdSerial((unsafe.Pointer)(nil))
+
+	return 0
+}
+
 func Npa_init() int {
 	var ret_c C.int
 
@@ -436,6 +454,14 @@ func Npa_init() int {
 	} else {
 		fmt.Println("Plog_SetLog success")
 	}
+
+	//	ret := Npa_InitCli()
+	//	if ret != 0 {
+	//		fmt.Println("Npa_InitCli fail")
+	//		return -1
+	//	} else {
+	//		fmt.Println("Npa_InitCli success")
+	//	}
 
 	return 0
 }
