@@ -3,9 +3,17 @@ package common
 import (
 	"fmt"
 	"log"
+	"time"
 
 	"github.com/google/gopacket/pcap"
 )
+
+func Com_task() {
+	for {
+		fmt.Printf("goroutine test \n")
+		time.Sleep(time.Duration(1) * time.Second)
+	}
+}
 
 func Com_print(a int, b int) int {
 	fmt.Printf("a = %d, b = %d\n", a, b)

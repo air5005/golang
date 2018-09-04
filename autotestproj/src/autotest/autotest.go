@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"npa"
 	"os"
+	"os/signal"
 	"strconv"
 )
 
@@ -23,9 +24,9 @@ func main() {
 		fmt.Printf("args[%d] = %s\n", index, value)
 	}
 
+	fmt.Println("enter: ", args[1])
 	switch args[1] {
 	case "common":
-		fmt.Println("enter: ", args[1])
 		if len(args) != 4 {
 			fmt.Println("USAGE: err 1")
 			return
@@ -38,16 +39,33 @@ func main() {
 		}
 		common.Com_print(v1, v2)
 		common.Go_packet()
+		go common.Com_task()
 	case "npa":
-		fmt.Println("enter: ", args[1])
 		ret := npa.Npa_init()
 		fmt.Println("Npa_init: ", ret)
 	case "ppp":
-		fmt.Println("enter: ", args[1])
 	case "gopacket":
-		fmt.Println("enter: ", args[1])
 	default:
 		Usage()
 	}
 
+	signalChan := make(chan os.Signal, 1)
+	cleanupDone := make(chan bool)
+	signal.Notify(signalChan, os.Interrupt)
+	go func() {
+		for _ = range signalChan {
+			fmt.Println("exit: ", args[1])
+			switch args[1] {
+			case "common":
+			case "npa":
+				npa.Npa_exit()
+			case "ppp":
+			case "gopacket":
+			default:
+
+			}
+			cleanupDone <- true
+		}
+	}()
+	<-cleanupDone
 }
