@@ -4,12 +4,14 @@ package npa
 #cgo CFLAGS: -I. -I/home/ych/zr9101/install/npa/lib/include/
 #cgo LDFLAGS:-L/home/ych/zr9101/install/npa/lib/ -lstdc++ -lc -lpthread -ldl -lnpa
 #include "platform.h"
+#include "platform_typedef.h"
 #include "NpaLib.h"
 #include <stdio.h>
 #include <string.h>
 #include <signal.h>
 #include <unistd.h>
 #include "common.h"
+#include "PLog.h"
 */
 import "C"
 
@@ -18,7 +20,6 @@ import (
 )
 
 type DedupCfg struct {
-	portid    uint16
 	dedupflag uint64
 	timeout   uint64
 }
@@ -70,33 +71,44 @@ type MacCfg struct {
 	dstmacflag uint8
 }
 
-func Npa_setdedup(cfg DedupCfg) (ret int) {
+const (
+	Dedup_ignore_mac     = 0x0001
+	Dedup_ignore_ttl     = 0x0002
+	Dedup_ignore_srcip   = 0x0004
+	Dedup_ignore_dstip   = 0x0008
+	Dedup_ignore_proto   = 0x0010
+	Dedup_ignore_srcport = 0x0020
+	Dedup_ignore_dstport = 0x0040
+	Dedup_ignore_vxlan   = 0x0080
+)
+
+const Npa_max_port_num = 2
+
+func Npa_setdedup(portid uint16, cfg DedupCfg) (ret int) {
 	var ret_c C.int
 
-	ret_c = C.NpaSetDedup((C.ushort)(cfg.portid), (C.ulong)(cfg.dedupflag), (C.ulong)(cfg.timeout))
+	ret_c = C.NpaSetDedup((C.ushort)(portid), (C.ulong)(cfg.dedupflag), (C.ulong)(cfg.timeout))
 	if ret_c != 0 {
 		ret = -1
 	} else {
 		ret = 0
 	}
 
-	fmt.Printf("Npa_setdedup portid:%d, dedupflag:0x%x, timeout:%d ret:%d \n", cfg.portid, cfg.dedupflag, cfg.timeout, ret)
+	//	fmt.Printf("Npa_setdedup portid:%d, dedupflag:0x%x, timeout:%d ret:%d \n", portid, cfg.dedupflag, cfg.timeout, ret)
 
 	return ret
 }
 func Npa_getdedup(portid uint16) (ret int, cfg DedupCfg) {
 	var ret_c C.int
 
-	cfg.portid = portid
-
-	ret_c = C.NpaGetDedup((C.ushort)(cfg.portid), (*C.ulong)(&cfg.dedupflag), (*C.ulong)(&cfg.timeout))
+	ret_c = C.NpaGetDedup((C.ushort)(portid), (*C.ulong)(&cfg.dedupflag), (*C.ulong)(&cfg.timeout))
 	if ret_c != 0 {
 		ret = -1
 	} else {
 		ret = 0
 	}
 
-	fmt.Printf("Npa_getdedup portid:%d, dedupflag:0x%x, timeout:%d, ret:%d \n", cfg.portid, cfg.dedupflag, cfg.timeout, ret)
+	//	fmt.Printf("Npa_getdedup portid:%d, dedupflag:0x%x, timeout:%d, ret:%d \n", portid, cfg.dedupflag, cfg.timeout, ret)
 
 	return ret, cfg
 }
@@ -110,7 +122,7 @@ func Npa_clrdedup(portid uint16) (ret int) {
 		ret = 0
 	}
 
-	fmt.Printf("Npa_clrdedup portid:%d, ret:%d \n", portid, ret)
+	//	fmt.Printf("Npa_clrdedup portid:%d, ret:%d \n", portid, ret)
 
 	return ret
 }
@@ -162,43 +174,43 @@ func Npa_getstat(portid uint16) (ret int, stat Npastat) {
 	stat.DedupDropPackets = (uint64)(stat_c.ulDedupDropPackets)
 	stat.AclDropPackets = (uint64)(stat_c.ulAclDropPackets)
 
-	fmt.Println("AllPackets        :", stat.AllPackets)
-	fmt.Println("AllBytes          :", stat.AllBytes)
-	fmt.Println("ArpPackets        :", stat.ArpPackets)
-	fmt.Println("ArpBytes          :", stat.ArpBytes)
-	fmt.Println("IpPackets         :", stat.IpPackets)
-	fmt.Println("IpBytes           :", stat.IpBytes)
-	fmt.Println("VlanPackets       :", stat.VlanPackets)
-	fmt.Println("VlanBytes         :", stat.VlanBytes)
-	fmt.Println("MplsPackets       :", stat.MplsPackets)
-	fmt.Println("MplsBytes         :", stat.MplsBytes)
-	fmt.Println("UniCastPackets    :", stat.UniCastPackets)
-	fmt.Println("UniCastBytes      :", stat.UniCastBytes)
-	fmt.Println("BroadCastPackets  :", stat.BroadCastPackets)
-	fmt.Println("BroadCastBytes    :", stat.BroadCastBytes)
-	fmt.Println("MultiCastPackets  :", stat.MultiCastPackets)
-	fmt.Println("MultiCastBytes    :", stat.MultiCastBytes)
-	fmt.Println("UdpPackets        :", stat.UdpPackets)
-	fmt.Println("UdpBytes          :", stat.UdpBytes)
-	fmt.Println("TcpPackets        :", stat.TcpPackets)
-	fmt.Println("TcpBytes          :", stat.TcpBytes)
-	fmt.Println("IcmpPackets       :", stat.IcmpPackets)
-	fmt.Println("IcmpBytes         :", stat.IcmpBytes)
-	fmt.Println("Packet64s         :", stat.Packet64s)
-	fmt.Println("Packet65To127s    :", stat.Packet65To127s)
-	fmt.Println("Packet128To255s   :", stat.Packet128To255s)
-	fmt.Println("Packet256To511s   :", stat.Packet256To511s)
-	fmt.Println("Packet512To1023s  :", stat.Packet512To1023s)
-	fmt.Println("Packet1024To1518s :", stat.Packet1024To1518s)
-	fmt.Println("UnderSizePackets  :", stat.UnderSizePackets)
-	fmt.Println("OverSizePackets   :", stat.OverSizePackets)
-	fmt.Println("FragmentPackets   :", stat.FragmentPackets)
-	fmt.Println("CollisionPackets  :", stat.CollisionPackets)
-	fmt.Println("DropPackets       :", stat.DropPackets)
-	fmt.Println("CrcAlignErrPackets:", stat.CrcAlignErrPackets)
-	fmt.Println("JabberPackets     :", stat.JabberPackets)
-	fmt.Println("DedupDropPackets  :", stat.DedupDropPackets)
-	fmt.Println("AclDropPackets    :", stat.AclDropPackets)
+	//	fmt.Println("AllPackets        :", stat.AllPackets)
+	//	fmt.Println("AllBytes          :", stat.AllBytes)
+	//	fmt.Println("ArpPackets        :", stat.ArpPackets)
+	//	fmt.Println("ArpBytes          :", stat.ArpBytes)
+	//	fmt.Println("IpPackets         :", stat.IpPackets)
+	//	fmt.Println("IpBytes           :", stat.IpBytes)
+	//	fmt.Println("VlanPackets       :", stat.VlanPackets)
+	//	fmt.Println("VlanBytes         :", stat.VlanBytes)
+	//	fmt.Println("MplsPackets       :", stat.MplsPackets)
+	//	fmt.Println("MplsBytes         :", stat.MplsBytes)
+	//	fmt.Println("UniCastPackets    :", stat.UniCastPackets)
+	//	fmt.Println("UniCastBytes      :", stat.UniCastBytes)
+	//	fmt.Println("BroadCastPackets  :", stat.BroadCastPackets)
+	//	fmt.Println("BroadCastBytes    :", stat.BroadCastBytes)
+	//	fmt.Println("MultiCastPackets  :", stat.MultiCastPackets)
+	//	fmt.Println("MultiCastBytes    :", stat.MultiCastBytes)
+	//	fmt.Println("UdpPackets        :", stat.UdpPackets)
+	//	fmt.Println("UdpBytes          :", stat.UdpBytes)
+	//	fmt.Println("TcpPackets        :", stat.TcpPackets)
+	//	fmt.Println("TcpBytes          :", stat.TcpBytes)
+	//	fmt.Println("IcmpPackets       :", stat.IcmpPackets)
+	//	fmt.Println("IcmpBytes         :", stat.IcmpBytes)
+	//	fmt.Println("Packet64s         :", stat.Packet64s)
+	//	fmt.Println("Packet65To127s    :", stat.Packet65To127s)
+	//	fmt.Println("Packet128To255s   :", stat.Packet128To255s)
+	//	fmt.Println("Packet256To511s   :", stat.Packet256To511s)
+	//	fmt.Println("Packet512To1023s  :", stat.Packet512To1023s)
+	//	fmt.Println("Packet1024To1518s :", stat.Packet1024To1518s)
+	//	fmt.Println("UnderSizePackets  :", stat.UnderSizePackets)
+	//	fmt.Println("OverSizePackets   :", stat.OverSizePackets)
+	//	fmt.Println("FragmentPackets   :", stat.FragmentPackets)
+	//	fmt.Println("CollisionPackets  :", stat.CollisionPackets)
+	//	fmt.Println("DropPackets       :", stat.DropPackets)
+	//	fmt.Println("CrcAlignErrPackets:", stat.CrcAlignErrPackets)
+	//	fmt.Println("JabberPackets     :", stat.JabberPackets)
+	//	fmt.Println("DedupDropPackets  :", stat.DedupDropPackets)
+	//	fmt.Println("AclDropPackets    :", stat.AclDropPackets)
 
 	return ret, stat
 }
@@ -212,7 +224,7 @@ func Npa_clrstat(portid uint16) (ret int) {
 		ret = 0
 	}
 
-	fmt.Printf("Npa_clrstat portid:%d, ret:%d \n", portid, ret)
+	//	fmt.Printf("Npa_clrstat portid:%d, ret:%d \n", portid, ret)
 
 	return ret
 }
@@ -228,8 +240,8 @@ func Npa_setmacentry(portid uint16, cfg MacCfg) (ret int) {
 			ret = 0
 		}
 
-		fmt.Printf("Npa_setdedup portid:%d, src mac:%02X:%02X:%02X:%02X:%02X:%02X ret:%d \n",
-			portid, cfg.srcmac[0], cfg.srcmac[1], cfg.srcmac[2], cfg.srcmac[3], cfg.srcmac[4], cfg.srcmac[5], ret)
+		//		fmt.Printf("Npa_setdedup portid:%d, src mac:%02X:%02X:%02X:%02X:%02X:%02X ret:%d \n",
+		//			portid, cfg.srcmac[0], cfg.srcmac[1], cfg.srcmac[2], cfg.srcmac[3], cfg.srcmac[4], cfg.srcmac[5], ret)
 	}
 
 	if cfg.dstmacflag == 1 {
@@ -240,8 +252,8 @@ func Npa_setmacentry(portid uint16, cfg MacCfg) (ret int) {
 			ret = 0
 		}
 
-		fmt.Printf("Npa_setdedup portid:%d, dst mac:%02X:%02X:%02X:%02X:%02X:%02X ret:%d \n",
-			portid, cfg.dstmac[0], cfg.dstmac[1], cfg.dstmac[2], cfg.dstmac[3], cfg.dstmac[4], cfg.dstmac[5], ret)
+		//		fmt.Printf("Npa_setdedup portid:%d, dst mac:%02X:%02X:%02X:%02X:%02X:%02X ret:%d \n",
+		//			portid, cfg.dstmac[0], cfg.dstmac[1], cfg.dstmac[2], cfg.dstmac[3], cfg.dstmac[4], cfg.dstmac[5], ret)
 	}
 
 	return ret
@@ -257,9 +269,9 @@ func Npa_getmacentry(portid uint16) (ret int, macentry MacCfg) {
 		ret = 0
 	}
 
-	fmt.Println("portid     :", portid)
-	fmt.Println("srcmac :", macentry.srcmac)
-	fmt.Println("dstmac :", macentry.dstmac)
+	//	fmt.Println("portid :", portid)
+	//	fmt.Println("srcmac :", macentry.srcmac)
+	//	fmt.Println("dstmac :", macentry.dstmac)
 
 	return ret, macentry
 }
@@ -274,15 +286,133 @@ func Npa_clrmacentry(portid uint16) (ret int) {
 		ret = 0
 	}
 
-	fmt.Printf("Npa_clrmacentry portid:%d, ret:%d \n", portid, ret)
+	//	fmt.Printf("Npa_clrmacentry portid:%d, ret:%d \n", portid, ret)
 
 	return ret
 }
 
-func Npa_init() int {
-	var ret_c C.int
+func Npa_TestConfig() int {
 	var decfg DedupCfg
 	var macentry MacCfg
+	var portid uint16
+
+	for portid = 0; portid < Npa_max_port_num; portid++ {
+		//test dedup config
+		decfg.dedupflag = Dedup_ignore_mac | Dedup_ignore_ttl | Dedup_ignore_srcip | Dedup_ignore_dstip | Dedup_ignore_proto | Dedup_ignore_srcport | Dedup_ignore_dstport | Dedup_ignore_vxlan
+		decfg.timeout = 100
+
+		ret := Npa_setdedup(portid, decfg)
+		if ret != 0 {
+			fmt.Printf("Npa Dedup Test: set dedup cfg Fail \n")
+			return ret
+		}
+
+		ret, respdecfg := Npa_getdedup(portid)
+		if ret != 0 {
+			fmt.Printf("Npa Dedup Test: get dedup cfg Fail \n")
+			return ret
+		}
+
+		if decfg.dedupflag != respdecfg.dedupflag || decfg.timeout != respdecfg.timeout {
+			fmt.Printf("Npa Dedup Test: get dedup cfg data Fail \n")
+			return ret
+		}
+
+		ret = Npa_clrdedup(portid)
+		if ret != 0 {
+			fmt.Printf("Npa Dedup Test: clr dedup cfg Fail \n")
+			return ret
+		}
+
+		ret, respdecfg = Npa_getdedup(portid)
+		if respdecfg.dedupflag != 0 || respdecfg.timeout != 0 {
+			fmt.Printf("Npa Dedup Test: clr dedup cfg data Fail \n")
+			return ret
+		}
+	}
+
+	fmt.Println("Npa Dedup Test Success")
+
+	//test modifed mac config
+	for portid = 0; portid < Npa_max_port_num; portid++ {
+		macentry.srcmacflag = 1
+		macentry.srcmac[0] = 0x01
+		macentry.srcmac[1] = 0x02
+		macentry.srcmac[2] = 0x03
+		macentry.srcmac[3] = 0x04
+		macentry.srcmac[4] = 0x05
+		macentry.srcmac[5] = 0x06
+		macentry.dstmacflag = 1
+		macentry.dstmac[0] = 0x11
+		macentry.dstmac[1] = 0x12
+		macentry.dstmac[2] = 0x13
+		macentry.dstmac[3] = 0x14
+		macentry.dstmac[4] = 0x15
+		macentry.dstmac[5] = 0x16
+		ret := Npa_setmacentry(portid, macentry)
+		if ret != 0 {
+			fmt.Printf("Npa modifed mac Test: set dedup cfg Fail \n")
+			return ret
+		}
+
+		ret, respmacentry := Npa_getmacentry(portid)
+		if ret != 0 {
+			fmt.Printf("Npa modifed mac Test: get dedup cfg Fail \n")
+			return ret
+		}
+
+		for index, value := range respmacentry.srcmac {
+			if macentry.srcmac[index] != value {
+				fmt.Printf("Npa modifed mac Test: get dedup cfg data Fail \n")
+				fmt.Println("set src mac :", macentry.srcmac)
+				fmt.Println("resp src mac :", respmacentry.srcmac)
+				return -1
+			}
+		}
+		for index, value := range respmacentry.dstmac {
+			if macentry.dstmac[index] != value {
+				fmt.Printf("Npa modifed mac Test: get dedup cfg data Fail \n")
+				fmt.Println("set dst mac :", macentry.dstmac)
+				fmt.Println("resp dst mac :", respmacentry.dstmac)
+				return -1
+			}
+		}
+
+		ret = Npa_clrmacentry(portid)
+		if ret != 0 {
+			fmt.Printf("Npa modifed mac Test: clr dedup cfg Fail \n")
+			return ret
+		}
+
+		ret, respmacentry = Npa_getmacentry(portid)
+		if ret != 0 {
+			fmt.Printf("Npa modifed mac Test: get dedup cfg Fail \n")
+			return ret
+		}
+
+		for _, value := range respmacentry.srcmac {
+			if 0 != value {
+				fmt.Printf("Npa modifed mac Test: get dedup cfg data Fail \n")
+				fmt.Println("resp src mac :", respmacentry.srcmac)
+				return -1
+			}
+		}
+		for _, value := range respmacentry.dstmac {
+			if 0 != value {
+				fmt.Printf("Npa modifed mac Test: get dedup cfg data Fail \n")
+				fmt.Println("resp dst mac :", respmacentry.dstmac)
+				return -1
+			}
+		}
+	}
+
+	fmt.Println("Npa modifed mac Test Success")
+
+	return 0
+}
+
+func Npa_init() int {
+	var ret_c C.int
 
 	ret_c = C.Cm_NicIsOnLine()
 	if ret_c != 1 {
@@ -294,39 +424,19 @@ func Npa_init() int {
 	if ret_c != 0 {
 		fmt.Println("NpaInit fail")
 		return -1
+	} else {
+		fmt.Println("NpaInit success")
 	}
-	decfg.portid = 1
-	decfg.dedupflag = 0xff
-	decfg.timeout = 10
 
-	Npa_setdedup(decfg)
-	_, decfg = Npa_getdedup(decfg.portid)
-	Npa_clrdedup(decfg.portid)
-	_, decfg = Npa_getdedup(decfg.portid)
+	ret_c = C.Plog_SetLog(0, 0xff, 1)
+	ret_c |= C.Plog_SetLog(1, 0xff, 1)
+	if ret_c != 0 {
+		fmt.Println("Plog_SetLog fail")
+		return -1
+	} else {
+		fmt.Println("Plog_SetLog success")
+	}
 
-	_, _ = Npa_getstat(0)
-	//	_ = Npa_clrstat(0)
-	//	_, _ = Npa_getstat(0)
-
-	_, macentry = Npa_getmacentry(0)
-	macentry.srcmacflag = 1
-	macentry.srcmac[0] = 0x01
-	macentry.srcmac[1] = 0x02
-	macentry.srcmac[2] = 0x03
-	macentry.srcmac[3] = 0x04
-	macentry.srcmac[4] = 0x05
-	macentry.srcmac[5] = 0x06
-	macentry.dstmacflag = 1
-	macentry.dstmac[0] = 0x11
-	macentry.dstmac[1] = 0x12
-	macentry.dstmac[2] = 0x13
-	macentry.dstmac[3] = 0x14
-	macentry.dstmac[4] = 0x15
-	macentry.dstmac[5] = 0x16
-	_ = Npa_setmacentry(0, macentry)
-	_, macentry = Npa_getmacentry(0)
-	_ = Npa_clrmacentry(0)
-	_, macentry = Npa_getmacentry(0)
 	return 0
 }
 

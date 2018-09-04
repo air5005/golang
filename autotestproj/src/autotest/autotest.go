@@ -43,6 +43,14 @@ func main() {
 	case "npa":
 		ret := npa.Npa_init()
 		fmt.Println("Npa_init: ", ret)
+
+		ret = npa.Npa_TestConfig()
+		if ret != 0 {
+			fmt.Println("Npa_TestConfig fail")
+		} else {
+			fmt.Println("Npa_TestConfig success")
+			return
+		}
 	case "ppp":
 	case "gopacket":
 	default:
