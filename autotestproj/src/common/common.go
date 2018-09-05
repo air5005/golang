@@ -10,11 +10,16 @@ import (
 	"github.com/google/gopacket/pcap"
 )
 
-var lastTS time.Time
-var lastSend time.Time
+var (
+	lastTS    time.Time
+	lastSend  time.Time
+	start     time.Time
+	bytesSent int
+)
 
-var start time.Time
-var bytesSent int
+type PackInfo struct {
+	count uint64
+}
 
 func Com_task() {
 	for {
@@ -115,7 +120,7 @@ func pcapInfo(filename string) (start time.Time, end time.Time, packets int, siz
 	if sec == 0 {
 		sec = 1
 	}
-	fmt.Printf("Avg packet rate %d/s\n", packets/sec)
+	//	fmt.Printf("Avg packet rate %d/s\n", packets/sec)
 	return start, end, packets, size
 }
 
@@ -145,7 +150,7 @@ func Com_sendpcap(iface string, fname string, fast bool) int {
 		data, ci, err := handleRead.ReadPacketData()
 		switch {
 		case err == io.EOF:
-			fmt.Printf("Finished in %s\n", time.Since(start))
+			//			fmt.Printf("Finished in %s\n", time.Since(start))
 			return 0
 		case err != nil:
 			log.Printf("Failed to read packet %d: %s\n", pkt, err)
@@ -164,9 +169,15 @@ func Com_sendpcap(iface string, fname string, fast bool) int {
 			if duration > time.Second {
 				rate := bytesSent / int(duration.Seconds())
 				remainingTime := tsEnd.Sub(tsStart) - duration
-				fmt.Printf("\rrate %d kB/sec - sent %d/%d kB - %d/%d packets - remaining time %s",
-					rate/1000, bytesSent/1000, size/1000,
-					pkt, packets, remainingTime)
+				//				fmt.Printf("\rrate %d kB/sec - sent %d/%d kB - %d/%d packets - remaining time %s",
+				//					rate/1000, bytesSent/1000, size/1000,
+				//					pkt, packets, remainingTime)
+				rate = rate
+				bytesSent = bytesSent
+				size = size
+				pkt = pkt
+				packets = packets
+				remainingTime = remainingTime
 			}
 		}
 	}

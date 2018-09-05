@@ -90,19 +90,19 @@ const (
 const Npa_max_port_num = 2
 
 const (
-	Npa_test_acl = iota
-	Npa_test_dedup_no_ignore
-	Npa_test_dedup_ignore_mac
-	Npa_test_dedup_ignore_ttl
-	Npa_test_dedup_ignore_srcip
-	Npa_test_dedup_ignore_dstip
-	Npa_test_dedup_ignore_srcport
-	Npa_test_dedup_ignore_dstport
-	Npa_test_dedup_ignore_vxlan
-	Npa_test_mac_modifed
+	NPA_TEST_ACL = iota
+	NPA_TEST_DEDUP_NO_IGNORE
+	NPA_TEST_DEDUP_IGNORE_MAC
+	NPA_TEST_DEDUP_IGNORE_TTL
+	NPA_TEST_DEDUP_IGNORE_SRCIP
+	NPA_TEST_DEDUP_IGNORE_DSTIP
+	NPA_TEST_DEDUP_IGNORE_SRCPORT
+	NPA_TEST_DEDUP_IGNORE_DSTPORT
+	NPA_TEST_DEDUP_IGNORE_VXLAN
+	NPA_TEST_MAC_MODIFED
 )
 
-var testpcap = [Npa_test_mac_modifed + 1]string{
+var testpcap = [NPA_TEST_MAC_MODIFED + 1]string{
 	"acl_test_pkt.pcap",
 	"dedup_test_pkt_org.pcap",
 	"dedup_test_pkt_diff_mac.pcap",
@@ -468,21 +468,228 @@ func Npa_InitCli() int {
 	return 0
 }
 
-func Npa_TestPacket() int {
+func Npa_CfgDedup(portid uint16, dedupflag uint64, timeout uint64) int {
+	var decfg DedupCfg
 
-	for index := Npa_test_acl; index <= Npa_test_mac_modifed; index++ {
+	if portid >= Npa_max_port_num {
+		fmt.Println("Inpara Err, portid:", portid, "dedupflag:", dedupflag)
+		return -1
+	}
+	ret := Npa_clrdedup(portid)
+	if ret != 0 {
+		fmt.Printf("Npa Dedup Test: clr dedup cfg Fail \n")
+		return -1
+	}
+	decfg.dedupflag = dedupflag
+	decfg.timeout = timeout
+	ret = Npa_setdedup(portid, decfg)
+	if ret != 0 {
+		fmt.Printf("Npa Dedup Test: set dedup cfg Fail \n")
+		return -1
+	}
+	ret, respdecfg := Npa_getdedup(portid)
+	if ret != 0 {
+		fmt.Printf("Npa Dedup Test: get dedup cfg Fail \n")
+		return -1
+	}
+
+	if decfg.dedupflag != respdecfg.dedupflag || decfg.timeout != respdecfg.timeout {
+		fmt.Printf("Npa Dedup Test: get dedup cfg data Fail \n")
+		return -1
+	}
+
+	return 0
+}
+
+func Npa_TestPacketMac(portid uint16, testindex uint64) int {
+	var cfg MacCfg
+
+	Npa_clrstat(portid)
+
+	cfg.srcmacflag = 1
+	cfg.dstmacflag = 1
+	cfg.srcmac[0] = 00
+	cfg.srcmac[1] = 11
+	cfg.srcmac[2] = 22
+	cfg.srcmac[3] = 33
+	cfg.srcmac[4] = 44
+	cfg.srcmac[5] = 55
+	cfg.dstmac[0] = 00
+	cfg.dstmac[1] = 11
+	cfg.dstmac[2] = 22
+	cfg.dstmac[3] = 33
+	cfg.dstmac[4] = 44
+	cfg.dstmac[5] = 55
+
+	ret := Npa_setmacentry(portid, cfg)
+	if ret != 0 {
+		fmt.Printf("Npa_setmacentry Fail \n")
+		return -1
+	}
+	ret = common.Com_sendpcap(npa_iface, npa_pcappath+testpcap[testindex], npa_fast)
+	if ret != 0 {
+		fmt.Printf("Com_sendpcap Fail \n")
+		return -1
+	}
+	ret, stat := Npa_getstat(portid)
+	if ret != 0 {
+		fmt.Printf("Npa_getstat Fail \n")
+		return -1
+	}
+	if stat.ModSrcMacPackets == 0 || stat.ModDstMacPackets == 0 {
+		fmt.Printf("ModSrcMacPackets ModDstMacPackets Fail \n")
+		return -1
+	}
+
+	Npa_clrstat(portid)
+
+	ret = Npa_clrmacentry(portid)
+	if ret != 0 {
+		fmt.Printf("Npa_clrmacentry Fail \n")
+		return -1
+	}
+	ret = common.Com_sendpcap(npa_iface, npa_pcappath+testpcap[testindex], npa_fast)
+	if ret != 0 {
+		fmt.Printf("Com_sendpcap Fail \n")
+		return -1
+	}
+	ret, stat = Npa_getstat(portid)
+	if ret != 0 {
+		fmt.Printf("Npa_getstat Fail \n")
+		return -1
+	}
+	if stat.ModSrcMacPackets != 0 && stat.ModDstMacPackets != 0 {
+		fmt.Printf("ModSrcMacPackets ModDstMacPackets Fail \n")
+		return -1
+	}
+	return 0
+}
+
+func Npa_TestPacketDedup(portid uint16, dedupflag uint64, testindex uint64) int {
+	Npa_clrstat(portid)
+
+	ret := Npa_CfgDedup(portid, dedupflag, 10)
+	if ret != 0 {
+		fmt.Printf("Npa Dedup Test: get dedup cfg Fail \n")
+		return -1
+	}
+	ret = common.Com_sendpcap(npa_iface, npa_pcappath+testpcap[testindex], npa_fast)
+	if ret != 0 {
+		fmt.Printf("Com_sendpcap Fail \n")
+		return -1
+	}
+	ret, stat := Npa_getstat(portid)
+	if ret != 0 {
+		fmt.Printf("Npa_getstat Fail \n")
+		return -1
+	}
+	if stat.DedupDropPackets == 0 {
+		fmt.Printf("DedupDropPackets Fail \n")
+		return -1
+	}
+
+	Npa_clrstat(portid)
+
+	ret = Npa_CfgDedup(portid, 0, 0)
+	if ret != 0 {
+		fmt.Printf("Npa Dedup Test: get dedup cfg Fail \n")
+		return -1
+	}
+	ret = common.Com_sendpcap(npa_iface, npa_pcappath+testpcap[testindex], npa_fast)
+	if ret != 0 {
+		fmt.Printf("Com_sendpcap Fail \n")
+		return -1
+	}
+	ret, stat = Npa_getstat(portid)
+	if ret != 0 {
+		fmt.Printf("Npa_getstat Fail \n")
+		return -1
+	}
+	if stat.DedupDropPackets != 0 {
+		fmt.Printf("DedupDropPackets Fail \n")
+		return -1
+	}
+	return 0
+}
+
+func Npa_TestPacket(portid uint16) int {
+	var ret int = 0
+
+	for index := NPA_TEST_ACL; index <= NPA_TEST_MAC_MODIFED; index++ {
 		switch index {
-		case Npa_test_acl:
-		case Npa_test_dedup_no_ignore:
-		case Npa_test_dedup_ignore_mac:
-		case Npa_test_dedup_ignore_ttl:
-		case Npa_test_dedup_ignore_srcip:
-		case Npa_test_dedup_ignore_dstip:
-		case Npa_test_dedup_ignore_srcport:
-		case Npa_test_dedup_ignore_dstport:
-		case Npa_test_dedup_ignore_vxlan:
-		case Npa_test_mac_modifed:
-			common.Com_sendpcap(npa_iface, npa_pcappath+testpcap[index], npa_fast)
+		case NPA_TEST_ACL:
+		case NPA_TEST_DEDUP_NO_IGNORE:
+			ret = Npa_TestPacketDedup(portid, 0, uint64(index))
+			if ret != 0 {
+				fmt.Printf("NPA_TEST_DEDUP_NO_IGNORE Fail \n")
+				return -1
+			} else {
+				fmt.Printf("NPA_TEST_DEDUP_NO_IGNORE Success \n")
+			}
+		case NPA_TEST_DEDUP_IGNORE_MAC:
+			ret = Npa_TestPacketDedup(portid, Dedup_ignore_mac, uint64(index))
+			if ret != 0 {
+				fmt.Printf("NPA_TEST_DEDUP_IGNORE_MAC Fail \n")
+				return -1
+			} else {
+				fmt.Printf("NPA_TEST_DEDUP_IGNORE_MAC Success \n")
+			}
+		case NPA_TEST_DEDUP_IGNORE_TTL:
+			ret = Npa_TestPacketDedup(portid, Dedup_ignore_ttl, uint64(index))
+			if ret != 0 {
+				fmt.Printf("NPA_TEST_DEDUP_IGNORE_TTL Fail \n")
+				return -1
+			} else {
+				fmt.Printf("NPA_TEST_DEDUP_IGNORE_TTL Success \n")
+			}
+		case NPA_TEST_DEDUP_IGNORE_SRCIP:
+			ret = Npa_TestPacketDedup(portid, Dedup_ignore_srcip, uint64(index))
+			if ret != 0 {
+				fmt.Printf("NPA_TEST_DEDUP_IGNORE_SRCIP Fail \n")
+				return -1
+			} else {
+				fmt.Printf("NPA_TEST_DEDUP_IGNORE_SRCIP Success \n")
+			}
+		case NPA_TEST_DEDUP_IGNORE_DSTIP:
+			ret = Npa_TestPacketDedup(portid, Dedup_ignore_dstip, uint64(index))
+			if ret != 0 {
+				fmt.Printf("NPA_TEST_DEDUP_IGNORE_DSTIP Fail \n")
+				return -1
+			} else {
+				fmt.Printf("NPA_TEST_DEDUP_IGNORE_DSTIP Success \n")
+			}
+		case NPA_TEST_DEDUP_IGNORE_SRCPORT:
+			ret = Npa_TestPacketDedup(portid, Dedup_ignore_srcport, uint64(index))
+			if ret != 0 {
+				fmt.Printf("NPA_TEST_DEDUP_IGNORE_SRCPORT Fail \n")
+				return -1
+			} else {
+				fmt.Printf("NPA_TEST_DEDUP_IGNORE_SRCPORT Success \n")
+			}
+		case NPA_TEST_DEDUP_IGNORE_DSTPORT:
+			ret = Npa_TestPacketDedup(portid, Dedup_ignore_dstport, uint64(index))
+			if ret != 0 {
+				fmt.Printf("NPA_TEST_DEDUP_IGNORE_DSTPORT Fail \n")
+				return -1
+			} else {
+				fmt.Printf("NPA_TEST_DEDUP_IGNORE_DSTPORT Success \n")
+			}
+		case NPA_TEST_DEDUP_IGNORE_VXLAN:
+			ret = Npa_TestPacketDedup(portid, Dedup_ignore_vxlan, uint64(index))
+			if ret != 0 {
+				fmt.Printf("NPA_TEST_DEDUP_IGNORE_VXLAN Fail \n")
+				return -1
+			} else {
+				fmt.Printf("NPA_TEST_DEDUP_IGNORE_VXLAN Success \n")
+			}
+		case NPA_TEST_MAC_MODIFED:
+			ret = Npa_TestPacketMac(portid, uint64(index))
+			if ret != 0 {
+				fmt.Printf("NPA_TEST_MAC_MODIFED Fail \n")
+				return -1
+			} else {
+				fmt.Printf("NPA_TEST_MAC_MODIFED Success \n")
+			}
 		default:
 			fmt.Println("err para, index:", index)
 		}
@@ -500,7 +707,7 @@ func Npa_init(iface string, pcappath string, fast bool) int {
 	npa_pcappath = pcappath
 	npa_fast = fast
 
-	//	for index := Npa_test_acl; index <= Npa_test_mac_modifed; index++ {
+	//	for index := NPA_TEST_ACL; index <= NPA_TEST_MAC_MODIFED; index++ {
 	//		fmt.Println(index, npa_pcappath+testpcap[index])
 	//	}
 
