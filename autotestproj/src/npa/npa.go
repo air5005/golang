@@ -449,6 +449,106 @@ func Npa_TestConfig() int {
 
 	fmt.Println("Npa modifed mac Test Success")
 
+	//test modifed acl config
+	for portid = 0; portid < Npa_max_port_num; portid++ {
+		var cfg AclCfg
+
+		cfg.SrcIp = 0x01010101
+		cfg.SrcIpMask = 0xffffff00
+		cfg.DstIp = 0x02020202
+		cfg.DstIpMask = 0xffffff00
+		cfg.SrcPortMin = 1
+		cfg.SrcPortMax = 65535
+		cfg.DstPortMin = 1
+		cfg.DstPortMax = 65535
+		cfg.Index = 0
+		cfg.Protocol = 17
+		cfg.ActionType = ACL_ACTION_DROP
+		cfg.PortId = portid
+
+		ret := Npa_addacl(cfg)
+		if ret != 0 {
+			fmt.Printf("Npa_add acl fail \n")
+			return -1
+		}
+
+		ret, respcfg := Npa_getacl(cfg.PortId, cfg.Index)
+		if ret != 0 {
+			fmt.Printf("Npa_getacl fail \n")
+			return -1
+		}
+
+		if cfg.SrcIp != respcfg.SrcIp ||
+			cfg.SrcIpMask != respcfg.SrcIpMask ||
+			cfg.DstIp != respcfg.DstIp ||
+			cfg.DstIpMask != respcfg.DstIpMask ||
+			cfg.SrcPortMin != respcfg.SrcPortMin ||
+			cfg.SrcPortMax != respcfg.SrcPortMax ||
+			cfg.DstPortMin != respcfg.DstPortMin ||
+			cfg.DstPortMax != respcfg.DstPortMax ||
+			cfg.Index != respcfg.Index ||
+			cfg.Protocol != respcfg.Protocol ||
+			cfg.ActionType != respcfg.ActionType ||
+			cfg.PortId != respcfg.PortId {
+			fmt.Printf("Npa_getacl data fail \n")
+			return -1
+		}
+
+		cfg.SrcIp = 0x0a0a0a0a
+		cfg.SrcIpMask = 0xffffffff
+		cfg.DstIp = 0x0b0b0b0b
+		cfg.DstIpMask = 0xffffffff
+		cfg.SrcPortMin = 10000
+		cfg.SrcPortMax = 20000
+		cfg.DstPortMin = 10000
+		cfg.DstPortMax = 20000
+		cfg.Index = 0
+		cfg.Protocol = 18
+		cfg.ActionType = ACL_ACTION_FW
+		cfg.PortId = portid
+
+		ret = Npa_modacl(cfg)
+		if ret != 0 {
+			fmt.Printf("Npa_modacl fail \n")
+			return -1
+		}
+
+		ret, respcfg = Npa_getacl(cfg.PortId, cfg.Index)
+		if ret != 0 {
+			fmt.Printf("Npa_getacl fail \n")
+			return -1
+		}
+
+		if cfg.SrcIp != respcfg.SrcIp ||
+			cfg.SrcIpMask != respcfg.SrcIpMask ||
+			cfg.DstIp != respcfg.DstIp ||
+			cfg.DstIpMask != respcfg.DstIpMask ||
+			cfg.SrcPortMin != respcfg.SrcPortMin ||
+			cfg.SrcPortMax != respcfg.SrcPortMax ||
+			cfg.DstPortMin != respcfg.DstPortMin ||
+			cfg.DstPortMax != respcfg.DstPortMax ||
+			cfg.Index != respcfg.Index ||
+			cfg.Protocol != respcfg.Protocol ||
+			cfg.ActionType != respcfg.ActionType ||
+			cfg.PortId != respcfg.PortId {
+			fmt.Printf("Npa_getacl data fail \n")
+			return -1
+		}
+
+		ret = Npa_delacl(cfg.PortId, cfg.Index)
+		if ret != 0 {
+			fmt.Printf("Npa_delacl fail \n")
+			return -1
+		}
+
+		ret, _ = Npa_getacl(cfg.PortId, cfg.Index)
+		if ret == 0 {
+			fmt.Printf("Npa_getacl fail \n")
+			return -1
+		}
+	}
+	fmt.Println("Npa acl Test Success")
+
 	return 0
 }
 
