@@ -372,7 +372,7 @@ func Npa_TestConfig() int {
 		}
 	}
 
-	fmt.Println("Npa Dedup Test Success")
+	fmt.Println("Npa Dedup config Test Success")
 
 	//test modifed mac config
 	for portid = 0; portid < Npa_max_port_num; portid++ {
@@ -447,7 +447,7 @@ func Npa_TestConfig() int {
 		}
 	}
 
-	fmt.Println("Npa modifed mac Test Success")
+	fmt.Println("Npa modifed mac config Test Success")
 
 	//test modifed acl config
 	for portid = 0; portid < Npa_max_port_num; portid++ {
@@ -547,7 +547,7 @@ func Npa_TestConfig() int {
 			return -1
 		}
 	}
-	fmt.Println("Npa acl Test Success")
+	fmt.Println("Npa acl config Test Success")
 
 	return 0
 }
@@ -712,12 +712,86 @@ func Npa_TestPacketDedup(portid uint16, dedupflag uint64, testindex uint64) int 
 	return 0
 }
 
+func Npa_TestPacketAcl(portid uint16, testindex uint64) int {
+	var fname string
+	var cfg AclCfg
+
+	fname = npa_pcappath + testpcap[testindex]
+	Npa_clrstat(portid)
+
+	ret, SrcIp, DstIp, SrcPort, DstPort, Protocol := common.Com_getpcapinfo(fname)
+
+	cfg.SrcIp = SrcIp
+	cfg.SrcIpMask = 0xffffffff
+	cfg.DstIp = DstIp
+	cfg.DstIpMask = 0xffffffff
+	cfg.SrcPortMin = SrcPort
+	cfg.SrcPortMax = SrcPort
+	cfg.DstPortMin = DstPort
+	cfg.DstPortMax = DstPort
+	cfg.Index = 0
+	cfg.Protocol = Protocol
+	cfg.ActionType = ACL_ACTION_DROP
+	cfg.PortId = portid
+
+	ret = Npa_addacl(cfg)
+	if ret != 0 {
+		fmt.Printf("Npa_add acl fail \n")
+		return -1
+	}
+
+	ret = common.Com_sendpcap(npa_iface, fname, npa_fast)
+	if ret != 0 {
+		fmt.Printf("Com_sendpcap Fail \n")
+		return -1
+	}
+	ret, stat := Npa_getstat(portid)
+	if ret != 0 {
+		fmt.Printf("Npa_getstat Fail \n")
+		return -1
+	}
+	if stat.AclDropPackets == 0 {
+		fmt.Printf("AclDropPackets Fail \n")
+		return -1
+	}
+
+	ret = Npa_delacl(cfg.PortId, cfg.Index)
+	if ret != 0 {
+		fmt.Printf("Npa_delacl fail \n")
+		return -1
+	}
+	Npa_clrstat(portid)
+	ret = common.Com_sendpcap(npa_iface, fname, npa_fast)
+	if ret != 0 {
+		fmt.Printf("Com_sendpcap Fail \n")
+		return -1
+	}
+	ret, stat = Npa_getstat(portid)
+	if ret != 0 {
+		fmt.Printf("Npa_getstat Fail \n")
+		return -1
+	}
+	if stat.AclDropPackets != 0 {
+		fmt.Printf("AclDropPackets Fail \n")
+		return -1
+	}
+
+	return 0
+}
+
 func Npa_TestPacket(portid uint16) int {
 	var ret int = 0
 
 	for index := NPA_TEST_ACL; index <= NPA_TEST_MAC_MODIFED; index++ {
 		switch index {
 		case NPA_TEST_ACL:
+			ret = Npa_TestPacketAcl(portid, uint64(index))
+			if ret != 0 {
+				fmt.Printf("NPA_TEST_ACL Fail \n")
+				return -1
+			} else {
+				fmt.Printf("NPA_TEST_ACL Success \n")
+			}
 		case NPA_TEST_DEDUP_NO_IGNORE:
 			ret = Npa_TestPacketDedup(portid, 0, uint64(index))
 			if ret != 0 {

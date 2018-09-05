@@ -16,9 +16,9 @@ package npa
 */
 import "C"
 
-import (
-	"fmt"
-)
+//import (
+//	"fmt"
+//)
 
 const (
 	ACL_ACTION_DROP = 1
@@ -84,7 +84,7 @@ func Npa_delacl(portid uint16, Index uint32) (ret int) {
 		ret = 0
 	}
 
-	fmt.Println("Npa_delacl:", ret)
+	//	fmt.Println("Npa_delacl:", ret)
 	return ret
 }
 

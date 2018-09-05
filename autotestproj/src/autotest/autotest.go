@@ -51,10 +51,10 @@ func main() {
 		fmt.Println("Npa_TestConfig success")
 	}
 
-	//	ret = npa.Npa_TestPacket(0)
-	//	if ret != 0 {
-	//		fmt.Println("Npa_TestPacket fail")
-	//	} else {
-	//		fmt.Println("Npa_TestPacket success")
-	//	}
+	ret = npa.Npa_TestPacket(0)
+	if ret != 0 {
+		fmt.Println("Npa_TestPacket fail")
+	} else {
+		fmt.Println("Npa_TestPacket success")
+	}
 }

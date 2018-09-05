@@ -4,9 +4,13 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"net"
+	"strconv"
+	"strings"
 	"time"
 
 	"github.com/google/gopacket"
+	"github.com/google/gopacket/layers"
 	"github.com/google/gopacket/pcap"
 )
 
@@ -16,10 +20,6 @@ var (
 	start     time.Time
 	bytesSent int
 )
-
-type PackInfo struct {
-	count uint64
-}
 
 func Com_task() {
 	for {
@@ -56,6 +56,23 @@ func Go_packet() {
 			fmt.Println("- Subnet mask: ", address.Netmask)
 		}
 	}
+}
+
+// Convert net.IP to uint32
+func Com_inetaton(ipv4 net.IP) (sum uint32) {
+	bits := strings.Split(ipv4.String(), ".")
+
+	b0, _ := strconv.Atoi(bits[0])
+	b1, _ := strconv.Atoi(bits[1])
+	b2, _ := strconv.Atoi(bits[2])
+	b3, _ := strconv.Atoi(bits[3])
+
+	sum += uint32(b0) << 24
+	sum += uint32(b1) << 16
+	sum += uint32(b2) << 8
+	sum += uint32(b3)
+
+	return sum
 }
 
 func writePacketDelayed(handle *pcap.Handle, buf []byte, ci gopacket.CaptureInfo) {
@@ -125,6 +142,7 @@ func pcapInfo(filename string) (start time.Time, end time.Time, packets int, siz
 }
 
 func Com_sendpcap(iface string, fname string, fast bool) int {
+
 	// Open PCAP file + handle potential BPF Filter
 	handleRead, err := pcap.OpenOffline(fname)
 	if err != nil {
@@ -183,4 +201,46 @@ func Com_sendpcap(iface string, fname string, fast bool) int {
 	}
 
 	return 0
+}
+
+func Com_getpcapinfo(fname string) (ret int, SrcIp, DstIp uint32, SrcPort, DstPort uint16, Protocol uint8) {
+	ret = -1
+	handleRead, err := pcap.OpenOffline(fname)
+	if err != nil {
+		log.Fatal("PCAP OpenOffline error (handle to read packet):", err)
+		return ret, SrcIp, DstIp, SrcPort, DstPort, Protocol
+	}
+	defer handleRead.Close()
+
+	packetSource := gopacket.NewPacketSource(handleRead, handleRead.LinkType())
+
+	for packet := range packetSource.Packets() {
+		ipLayer := packet.Layer(layers.LayerTypeIPv4)
+		if ipLayer != nil {
+			ip, _ := ipLayer.(*layers.IPv4)
+			SrcIp = Com_inetaton(ip.SrcIP)
+			DstIp = Com_inetaton(ip.DstIP)
+			Protocol = (uint8)(ip.Protocol)
+
+			if Protocol == 6 {
+				tcpLayer := packet.Layer(layers.LayerTypeTCP)
+
+				if tcpLayer != nil {
+					tcp, _ := tcpLayer.(*layers.TCP)
+					SrcPort = (uint16)(tcp.SrcPort)
+					DstPort = (uint16)(tcp.DstPort)
+				}
+			} else if Protocol == 17 {
+				udpLayer := packet.Layer(layers.LayerTypeUDP)
+
+				if udpLayer != nil {
+					udp, _ := udpLayer.(*layers.UDP)
+					SrcPort = (uint16)(udp.SrcPort)
+					DstPort = (uint16)(udp.DstPort)
+				}
+			}
+		}
+		return 0, SrcIp, DstIp, SrcPort, DstPort, Protocol
+	}
+	return ret, SrcIp, DstIp, SrcPort, DstPort, Protocol
 }
