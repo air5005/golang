@@ -16,10 +16,6 @@ package npa
 */
 import "C"
 
-//import (
-//	"fmt"
-//)
-
 const (
 	ACL_ACTION_DROP = 1
 	ACL_ACTION_FW   = 3
@@ -65,12 +61,6 @@ func Npa_addacl(cfg AclCfg) (ret int) {
 		ret = 0
 	}
 
-	//	fmt.Println("Npa_addacl dump begin:", ret)
-	//	fmt.Printf("srcip:0x%x SrcIpMask:0x%x DstIp:0x%x DstIpMask:0x%x \n", cfg.SrcIp, cfg.SrcIpMask, cfg.DstIp, cfg.DstIpMask)
-	//	fmt.Printf("SrcPortMin:%d SrcPortMax:%d DstPortMin:%d DstPortMax:%d \n", cfg.SrcPortMin, cfg.SrcPortMax, cfg.DstPortMin, cfg.DstPortMax)
-	//	fmt.Printf("Index:%d Protocol:%d ActionType:%d PortId:%d \n", cfg.Index, cfg.Protocol, cfg.ActionType, cfg.PortId)
-	//	fmt.Println("Npa_addacl dump end")
-
 	return ret
 }
 
@@ -84,7 +74,6 @@ func Npa_delacl(portid uint16, Index uint32) (ret int) {
 		ret = 0
 	}
 
-	//	fmt.Println("Npa_delacl:", ret)
 	return ret
 }
 
@@ -111,12 +100,6 @@ func Npa_modacl(cfg AclCfg) (ret int) {
 	} else {
 		ret = 0
 	}
-
-	//	fmt.Println("Npa_modacl dump begin:", ret)
-	//	fmt.Printf("srcip:0x%x SrcIpMask:0x%x DstIp:0x%x DstIpMask:0x%x \n", cfg.SrcIp, cfg.SrcIpMask, cfg.DstIp, cfg.DstIpMask)
-	//	fmt.Printf("SrcPortMin:%d SrcPortMax:%d DstPortMin:%d DstPortMax:%d \n", cfg.SrcPortMin, cfg.SrcPortMax, cfg.DstPortMin, cfg.DstPortMax)
-	//	fmt.Printf("Index:%d Protocol:%d ActionType:%d PortId:%d \n", cfg.Index, cfg.Protocol, cfg.ActionType, cfg.PortId)
-	//	fmt.Println("Npa_modacl dump end")
 
 	return ret
 }
@@ -146,12 +129,6 @@ func Npa_getacl(portid uint16, Index uint32) (ret int, cfg AclCfg) {
 	cfg.Protocol = (uint8)(cfg_c.ucProtocol)
 	cfg.ActionType = (uint8)(cfg_c.ucActionType)
 	cfg.PortId = (uint16)(cfg_c.usPortId)
-
-	//	fmt.Println("Npa_getacl dump begin:", ret)
-	//	fmt.Printf("srcip:0x%x SrcIpMask:0x%x DstIp:0x%x DstIpMask:0x%x \n", cfg.SrcIp, cfg.SrcIpMask, cfg.DstIp, cfg.DstIpMask)
-	//	fmt.Printf("SrcPortMin:%d SrcPortMax:%d DstPortMin:%d DstPortMax:%d \n", cfg.SrcPortMin, cfg.SrcPortMax, cfg.DstPortMin, cfg.DstPortMax)
-	//	fmt.Printf("Index:%d Protocol:%d ActionType:%d PortId:%d \n", cfg.Index, cfg.Protocol, cfg.ActionType, cfg.PortId)
-	//	fmt.Println("Npa_getacl dump end")
 
 	return ret, cfg
 }
