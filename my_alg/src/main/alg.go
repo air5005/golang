@@ -1,10 +1,10 @@
 package main
 
 import (
+	"bubble"
 	"fmt"
 	"os"
 	"strconv"
-	"swap"
 )
 
 func main() {
@@ -26,13 +26,7 @@ func main() {
 		fmt.Printf("before array[%d] = %d \r\n", index, array[index])
 	}
 
-	for i := 0; i < arraylen-1; i++ {
-		for j := 0; j < arraylen-1-i; j++ {
-			if array[j] < array[j+1] {
-				swap.Swap2(array, j, j+1)
-			}
-		}
-	}
+	bubble.Method1(array, arraylen)
 
 	for index := 0; index < arraylen; index++ {
 		fmt.Printf("after array[%d] = %d \r\n", index, array[index])
