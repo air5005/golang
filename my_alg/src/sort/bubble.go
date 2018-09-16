@@ -4,10 +4,11 @@ import (
 	"fmt"
 	"os"
 	"strconv"
+	"swap"
 )
 
 func main() {
-	var array [100]int
+	var array = make([]int, 100, 100)
 
 	args := os.Args
 	if args == nil || len(args) >= 100 {
@@ -28,9 +29,7 @@ func main() {
 	for i := 0; i < arraylen-1; i++ {
 		for j := 0; j < arraylen-1-i; j++ {
 			if array[j] < array[j+1] {
-				array[j] = array[j] + array[j+1]
-				array[j+1] = array[j] - array[j+1]
-				array[j] = array[j] - array[j+1]
+				swap.Swap2(array, j, j+1)
 			}
 		}
 	}
