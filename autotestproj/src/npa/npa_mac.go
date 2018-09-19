@@ -23,11 +23,11 @@ type MacCfg struct {
 	dstmacflag uint8
 }
 
-func Npa_setmacentry(portid uint16, cfg MacCfg) (ret int) {
+func Npa_setmacentry(cardid uint16, portid uint16, cfg MacCfg) (ret int) {
 	var ret_c C.int
 
 	if cfg.srcmacflag == 1 {
-		ret_c = C.NpaSetMacEntry((C.ushort)(portid), (C.uchar)(1), (*C.uchar)(&cfg.srcmac[0]))
+		ret_c = C.NpaSetMacEntry((C.ushort)(cardid), (C.ushort)(portid), (C.uchar)(1), (*C.uchar)(&cfg.srcmac[0]))
 		if ret_c != 0 {
 			ret = -1
 		} else {
@@ -36,7 +36,7 @@ func Npa_setmacentry(portid uint16, cfg MacCfg) (ret int) {
 	}
 
 	if cfg.dstmacflag == 1 {
-		ret_c = C.NpaSetMacEntry((C.ushort)(portid), (C.uchar)(0), (*C.uchar)(&cfg.dstmac[0]))
+		ret_c = C.NpaSetMacEntry((C.ushort)(cardid), (C.ushort)(portid), (C.uchar)(0), (*C.uchar)(&cfg.dstmac[0]))
 		if ret_c != 0 {
 			ret = -1
 		} else {
@@ -47,10 +47,10 @@ func Npa_setmacentry(portid uint16, cfg MacCfg) (ret int) {
 	return ret
 }
 
-func Npa_getmacentry(portid uint16) (ret int, macentry MacCfg) {
+func Npa_getmacentry(cardid uint16, portid uint16) (ret int, macentry MacCfg) {
 	var ret_c C.int
 
-	ret_c = C.NpaGetMacEntry((C.ushort)(portid), (*C.uchar)(&macentry.srcmac[0]), (*C.uchar)(&macentry.dstmac[0]))
+	ret_c = C.NpaGetMacEntry((C.ushort)(cardid), (C.ushort)(portid), (*C.uchar)(&macentry.srcmac[0]), (*C.uchar)(&macentry.dstmac[0]))
 	if ret_c != 0 {
 		ret = -1
 	} else {
@@ -60,10 +60,10 @@ func Npa_getmacentry(portid uint16) (ret int, macentry MacCfg) {
 	return ret, macentry
 }
 
-func Npa_clrmacentry(portid uint16) (ret int) {
+func Npa_clrmacentry(cardid uint16, portid uint16) (ret int) {
 	var ret_c C.int
 
-	ret_c = C.NpaClrMacEntry((C.ushort)(portid))
+	ret_c = C.NpaClrMacEntry((C.ushort)(cardid), (C.ushort)(portid))
 	if ret_c != 0 {
 		ret = -1
 	} else {

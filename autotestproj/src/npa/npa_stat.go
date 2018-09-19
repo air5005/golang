@@ -58,11 +58,11 @@ type Npastat struct {
 	ModDstMacPackets   uint64
 }
 
-func Npa_getstat(portid uint16) (ret int, stat Npastat) {
+func Npa_getstat(cardid uint16, portid uint16) (ret int, stat Npastat) {
 	var ret_c C.int
 	var stat_c C.ST_NPA_STAT
 
-	ret_c = C.NpaGetStat((C.ushort)(portid), (&stat_c))
+	ret_c = C.NpaGetStat((C.ushort)(cardid), (C.ushort)(portid), (&stat_c))
 	if ret_c != 0 {
 		ret = -1
 	} else {
@@ -151,10 +151,10 @@ func Npa_getstat(portid uint16) (ret int, stat Npastat) {
 	return ret, stat
 }
 
-func Npa_clrstat(portid uint16) (ret int) {
+func Npa_clrstat(cardid uint16, portid uint16) (ret int) {
 	var ret_c C.int
 
-	ret_c = C.NpaClrStat((C.ushort)(portid))
+	ret_c = C.NpaClrStat((C.ushort)(cardid), (C.ushort)(portid))
 	if ret_c != 0 {
 		ret = -1
 	} else {

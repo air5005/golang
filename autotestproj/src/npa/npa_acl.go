@@ -35,6 +35,7 @@ type AclCfg struct {
 	Protocol   uint8
 	ActionType uint8
 	PortId     uint16
+	CardId     uint16
 }
 
 func Npa_addacl(cfg AclCfg) (ret int) {
@@ -54,7 +55,7 @@ func Npa_addacl(cfg AclCfg) (ret int) {
 	cfg_c.ucActionType = (C.uchar)(cfg.ActionType)
 	cfg_c.usPortId = (C.ushort)(cfg.PortId)
 
-	ret_c = C.NpaAddAclEntry(&cfg_c)
+	ret_c = C.NpaAddAclEntry((C.ushort)(cfg.CardId), &cfg_c)
 	if ret_c != 0 {
 		ret = -1
 	} else {
@@ -64,10 +65,10 @@ func Npa_addacl(cfg AclCfg) (ret int) {
 	return ret
 }
 
-func Npa_delacl(portid uint16, Index uint32) (ret int) {
+func Npa_delacl(cardid uint16, portid uint16, Index uint32) (ret int) {
 	var ret_c C.int
 
-	ret_c = C.NpaDelAclEntry((C.ushort)(portid), (C.uint)(Index))
+	ret_c = C.NpaDelAclEntry((C.ushort)(cardid), (C.ushort)(portid), (C.uint)(Index))
 	if ret_c != 0 {
 		ret = -1
 	} else {
@@ -94,7 +95,7 @@ func Npa_modacl(cfg AclCfg) (ret int) {
 	cfg_c.ucActionType = (C.uchar)(cfg.ActionType)
 	cfg_c.usPortId = (C.ushort)(cfg.PortId)
 
-	ret_c = C.NpaModAclEntry(&cfg_c)
+	ret_c = C.NpaModAclEntry((C.ushort)(cfg.CardId), &cfg_c)
 	if ret_c != 0 {
 		ret = -1
 	} else {
@@ -104,13 +105,13 @@ func Npa_modacl(cfg AclCfg) (ret int) {
 	return ret
 }
 
-func Npa_getacl(portid uint16, Index uint32) (ret int, cfg AclCfg) {
+func Npa_getacl(cardid uint16, portid uint16, Index uint32) (ret int, cfg AclCfg) {
 	var ret_c C.int
 	var cfg_c _Ctype_struct_tag_ST_NPA_ACL_INFO
 
 	cfg_c.usPortId = (C.ushort)(portid)
 	cfg_c.uiIndex = (C.uint)(Index)
-	ret_c = C.NpaGetAclEntry(&cfg_c)
+	ret_c = C.NpaGetAclEntry((C.ushort)(cardid), &cfg_c)
 	if ret_c != 0 {
 		ret = -1
 	} else {
@@ -129,6 +130,7 @@ func Npa_getacl(portid uint16, Index uint32) (ret int, cfg AclCfg) {
 	cfg.Protocol = (uint8)(cfg_c.ucProtocol)
 	cfg.ActionType = (uint8)(cfg_c.ucActionType)
 	cfg.PortId = (uint16)(cfg_c.usPortId)
+	cfg.CardId = (uint16)(cardid)
 
 	return ret, cfg
 }

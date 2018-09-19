@@ -13,12 +13,9 @@ var Usage = func() {
 
 func main() {
 	var ret int
-	var ethname string
-	var pcappath string
-	var fast bool
 
 	args := os.Args
-	if args == nil || len(args) < 4 {
+	if args == nil || len(args) < 2 {
 		Usage()
 		return
 	}
@@ -27,34 +24,34 @@ func main() {
 		fmt.Printf("args[%d] = %s\n", index, value)
 	}
 
-	ethname = args[1]
-	pcappath = args[2]
-	v1, err1 := strconv.Atoi(args[3])
+	testtype, err1 := strconv.Atoi(args[1])
 	if err1 != nil {
 		fmt.Println("err")
 		return
 	}
-	if v1 == 0 {
-		fast = false
-	} else {
-		fast = true
+
+	switch testtype {
+	case 0:
+		ret = npa.Npa_init()
+		fmt.Println("Npa_init: ", ret)
+		defer npa.Npa_exit()
+
+		ret = npa.Npa_TestConfig()
+		if ret != 0 {
+			fmt.Println("Npa_TestConfig fail")
+			return
+		} else {
+			fmt.Println("Npa_TestConfig success")
+		}
+
+		ret = npa.Npa_TestPacket()
+		if ret != 0 {
+			fmt.Println("Npa_TestPacket fail")
+			return
+		} else {
+			fmt.Println("Npa_TestPacket success")
+		}
+	default:
 	}
 
-	ret = npa.Npa_init(ethname, pcappath, fast)
-	fmt.Println("Npa_init: ", ret)
-	defer npa.Npa_exit()
-
-	ret = npa.Npa_TestConfig()
-	if ret != 0 {
-		fmt.Println("Npa_TestConfig fail")
-	} else {
-		fmt.Println("Npa_TestConfig success")
-	}
-
-	ret = npa.Npa_TestPacket(0)
-	if ret != 0 {
-		fmt.Println("Npa_TestPacket fail")
-	} else {
-		fmt.Println("Npa_TestPacket success")
-	}
 }

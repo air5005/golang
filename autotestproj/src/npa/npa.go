@@ -23,6 +23,12 @@ import (
 )
 
 const Npa_max_port_num = 2
+const Npa_max_card_num = 1
+
+type NpaTestCfgInfo struct {
+	npa_iface    [Npa_max_port_num]string
+	npa_pcappath [Npa_max_port_num]string
+}
 
 const (
 	NPA_TEST_ACL = iota
@@ -50,123 +56,146 @@ var testpcap = [NPA_TEST_MAC_MODIFED + 1]string{
 	"dedup_test_pkt_org.pcap",
 }
 
-var (
-	npa_iface    string
-	npa_pcappath string
-	npa_fast     bool
-)
+var testpara = []NpaTestCfgInfo{
+	NpaTestCfgInfo{
+		npa_iface:    [Npa_max_port_num]string{"p2p1_0", "p2p2_0"},
+		npa_pcappath: [Npa_max_port_num]string{"/home/ych/pcap/", "/home/ych/pcap/"},
+	},
+	NpaTestCfgInfo{
+		npa_iface:    [Npa_max_port_num]string{"p4p1_0", "p4p2_0"},
+		npa_pcappath: [Npa_max_port_num]string{"/home/ych/pcap/", "/home/ych/pcap/"},
+	},
+}
+
+func NpaDumpTestPara() {
+	fmt.Println(testpara[0].npa_iface[0])
+	fmt.Println(testpara[0].npa_pcappath[0])
+	fmt.Println(testpara[0].npa_iface[1])
+	fmt.Println(testpara[0].npa_pcappath[1])
+	fmt.Println(testpara[1].npa_iface[0])
+	fmt.Println(testpara[1].npa_pcappath[0])
+	fmt.Println(testpara[1].npa_iface[1])
+	fmt.Println(testpara[1].npa_pcappath[1])
+}
 
 func Npa_TestConfig() int {
 	var decfg DedupCfg
 	var macentry MacCfg
+	var cardid uint16
 	var portid uint16
 
-	for portid = 0; portid < Npa_max_port_num; portid++ {
-		//test dedup config
-		decfg.dedupflag = Dedup_ignore_mac | Dedup_ignore_ttl | Dedup_ignore_srcip | Dedup_ignore_dstip | Dedup_ignore_proto | Dedup_ignore_srcport | Dedup_ignore_dstport | Dedup_ignore_vxlan
-		decfg.timeout = 100
+	for cardid = 0; cardid < Npa_max_card_num; cardid++ {
+		for portid = 0; portid < Npa_max_port_num; portid++ {
+			//test dedup config
+			decfg.dedupflag = Dedup_ignore_mac | Dedup_ignore_ttl | Dedup_ignore_srcip |
+				Dedup_ignore_dstip | Dedup_ignore_proto | Dedup_ignore_srcport |
+				Dedup_ignore_dstport | Dedup_ignore_vxlan
+			decfg.timeout = 100
 
-		ret := Npa_setdedup(portid, decfg)
-		if ret != 0 {
-			fmt.Printf("Npa Dedup Test: set dedup cfg Fail \n")
-			return ret
-		}
+			ret := Npa_setdedup(cardid, portid, decfg)
+			if ret != 0 {
+				fmt.Printf("Npa Dedup Test: set dedup cfg Fail \n")
+				return ret
+			}
 
-		ret, respdecfg := Npa_getdedup(portid)
-		if ret != 0 {
-			fmt.Printf("Npa Dedup Test: get dedup cfg Fail \n")
-			return ret
-		}
+			ret, respdecfg := Npa_getdedup(cardid, portid)
+			if ret != 0 {
+				fmt.Printf("Npa Dedup Test: get dedup cfg Fail \n")
+				return ret
+			}
 
-		if decfg.dedupflag != respdecfg.dedupflag || decfg.timeout != respdecfg.timeout {
-			fmt.Printf("Npa Dedup Test: get dedup cfg data Fail \n")
-			return ret
-		}
+			if decfg.dedupflag != respdecfg.dedupflag || decfg.timeout != respdecfg.timeout {
+				fmt.Printf("Npa Dedup Test: get dedup cfg data Fail \n")
+				return ret
+			}
 
-		ret = Npa_clrdedup(portid)
-		if ret != 0 {
-			fmt.Printf("Npa Dedup Test: clr dedup cfg Fail \n")
-			return ret
-		}
+			ret = Npa_clrdedup(cardid, portid)
+			if ret != 0 {
+				fmt.Printf("Npa Dedup Test: clr dedup cfg Fail \n")
+				return ret
+			}
 
-		ret, respdecfg = Npa_getdedup(portid)
-		if respdecfg.dedupflag != 0 || respdecfg.timeout != 0 {
-			fmt.Printf("Npa Dedup Test: clr dedup cfg data Fail \n")
-			return ret
+			ret, respdecfg = Npa_getdedup(cardid, portid)
+			if respdecfg.dedupflag != 0 || respdecfg.timeout != 0 {
+				fmt.Printf("Npa Dedup Test: clr dedup cfg data Fail \n")
+				return ret
+			}
 		}
 	}
 
 	fmt.Println("Npa Dedup config Test Success")
 
 	//test modifed mac config
-	for portid = 0; portid < Npa_max_port_num; portid++ {
-		macentry.srcmacflag = 1
-		macentry.srcmac[0] = 0x01
-		macentry.srcmac[1] = 0x02
-		macentry.srcmac[2] = 0x03
-		macentry.srcmac[3] = 0x04
-		macentry.srcmac[4] = 0x05
-		macentry.srcmac[5] = 0x06
-		macentry.dstmacflag = 1
-		macentry.dstmac[0] = 0x11
-		macentry.dstmac[1] = 0x12
-		macentry.dstmac[2] = 0x13
-		macentry.dstmac[3] = 0x14
-		macentry.dstmac[4] = 0x15
-		macentry.dstmac[5] = 0x16
-		ret := Npa_setmacentry(portid, macentry)
-		if ret != 0 {
-			fmt.Printf("Npa modifed mac Test: set dedup cfg Fail \n")
-			return ret
-		}
-
-		ret, respmacentry := Npa_getmacentry(portid)
-		if ret != 0 {
-			fmt.Printf("Npa modifed mac Test: get dedup cfg Fail \n")
-			return ret
-		}
-
-		for index, value := range respmacentry.srcmac {
-			if macentry.srcmac[index] != value {
-				fmt.Printf("Npa modifed mac Test: get dedup cfg data Fail \n")
-				fmt.Println("set src mac :", macentry.srcmac)
-				fmt.Println("resp src mac :", respmacentry.srcmac)
-				return -1
+	for cardid = 0; cardid < Npa_max_card_num; cardid++ {
+		for portid = 0; portid < Npa_max_port_num; portid++ {
+			macentry.srcmacflag = 1
+			macentry.srcmac[0] = 0x01
+			macentry.srcmac[1] = 0x02
+			macentry.srcmac[2] = 0x03
+			macentry.srcmac[3] = 0x04
+			macentry.srcmac[4] = 0x05
+			macentry.srcmac[5] = 0x06
+			macentry.dstmacflag = 1
+			macentry.dstmac[0] = 0x11
+			macentry.dstmac[1] = 0x12
+			macentry.dstmac[2] = 0x13
+			macentry.dstmac[3] = 0x14
+			macentry.dstmac[4] = 0x15
+			macentry.dstmac[5] = 0x16
+			ret := Npa_setmacentry(cardid, portid, macentry)
+			if ret != 0 {
+				fmt.Printf("Npa modifed mac Test: set dedup cfg Fail \n")
+				return ret
 			}
-		}
-		for index, value := range respmacentry.dstmac {
-			if macentry.dstmac[index] != value {
-				fmt.Printf("Npa modifed mac Test: get dedup cfg data Fail \n")
-				fmt.Println("set dst mac :", macentry.dstmac)
-				fmt.Println("resp dst mac :", respmacentry.dstmac)
-				return -1
+
+			ret, respmacentry := Npa_getmacentry(cardid, portid)
+			if ret != 0 {
+				fmt.Printf("Npa modifed mac Test: get dedup cfg Fail \n")
+				return ret
 			}
-		}
 
-		ret = Npa_clrmacentry(portid)
-		if ret != 0 {
-			fmt.Printf("Npa modifed mac Test: clr dedup cfg Fail \n")
-			return ret
-		}
-
-		ret, respmacentry = Npa_getmacentry(portid)
-		if ret != 0 {
-			fmt.Printf("Npa modifed mac Test: get dedup cfg Fail \n")
-			return ret
-		}
-
-		for _, value := range respmacentry.srcmac {
-			if 0 != value {
-				fmt.Printf("Npa modifed mac Test: get dedup cfg data Fail \n")
-				fmt.Println("resp src mac :", respmacentry.srcmac)
-				return -1
+			for index, value := range respmacentry.srcmac {
+				if macentry.srcmac[index] != value {
+					fmt.Printf("Npa modifed mac Test: get dedup cfg data Fail \n")
+					fmt.Println("set src mac :", macentry.srcmac)
+					fmt.Println("resp src mac :", respmacentry.srcmac)
+					return -1
+				}
 			}
-		}
-		for _, value := range respmacentry.dstmac {
-			if 0 != value {
-				fmt.Printf("Npa modifed mac Test: get dedup cfg data Fail \n")
-				fmt.Println("resp dst mac :", respmacentry.dstmac)
-				return -1
+			for index, value := range respmacentry.dstmac {
+				if macentry.dstmac[index] != value {
+					fmt.Printf("Npa modifed mac Test: get dedup cfg data Fail \n")
+					fmt.Println("set dst mac :", macentry.dstmac)
+					fmt.Println("resp dst mac :", respmacentry.dstmac)
+					return -1
+				}
+			}
+
+			ret = Npa_clrmacentry(cardid, portid)
+			if ret != 0 {
+				fmt.Printf("Npa modifed mac Test: clr dedup cfg Fail \n")
+				return ret
+			}
+
+			ret, respmacentry = Npa_getmacentry(cardid, portid)
+			if ret != 0 {
+				fmt.Printf("Npa modifed mac Test: get dedup cfg Fail \n")
+				return ret
+			}
+
+			for _, value := range respmacentry.srcmac {
+				if 0 != value {
+					fmt.Printf("Npa modifed mac Test: get dedup cfg data Fail \n")
+					fmt.Println("resp src mac :", respmacentry.srcmac)
+					return -1
+				}
+			}
+			for _, value := range respmacentry.dstmac {
+				if 0 != value {
+					fmt.Printf("Npa modifed mac Test: get dedup cfg data Fail \n")
+					fmt.Println("resp dst mac :", respmacentry.dstmac)
+					return -1
+				}
 			}
 		}
 	}
@@ -174,103 +203,110 @@ func Npa_TestConfig() int {
 	fmt.Println("Npa modifed mac config Test Success")
 
 	//test modifed acl config
-	for portid = 0; portid < Npa_max_port_num; portid++ {
-		var cfg AclCfg
+	for cardid = 0; cardid < Npa_max_card_num; cardid++ {
+		for portid = 0; portid < Npa_max_port_num; portid++ {
+			var cfg AclCfg
 
-		cfg.SrcIp = 0x01010101
-		cfg.SrcIpMask = 0xffffff00
-		cfg.DstIp = 0x02020202
-		cfg.DstIpMask = 0xffffff00
-		cfg.SrcPortMin = 1
-		cfg.SrcPortMax = 65535
-		cfg.DstPortMin = 1
-		cfg.DstPortMax = 65535
-		cfg.Index = 0
-		cfg.Protocol = 17
-		cfg.ActionType = ACL_ACTION_DROP
-		cfg.PortId = portid
+			cfg.SrcIp = 0x01010101
+			cfg.SrcIpMask = 0xffffff00
+			cfg.DstIp = 0x02020202
+			cfg.DstIpMask = 0xffffff00
+			cfg.SrcPortMin = 1
+			cfg.SrcPortMax = 65535
+			cfg.DstPortMin = 1
+			cfg.DstPortMax = 65535
+			cfg.Index = 0
+			cfg.Protocol = 17
+			cfg.ActionType = ACL_ACTION_DROP
+			cfg.PortId = portid
+			cfg.CardId = cardid
 
-		ret := Npa_addacl(cfg)
-		if ret != 0 {
-			fmt.Printf("Npa_add acl fail \n")
-			return -1
-		}
+			ret := Npa_addacl(cfg)
+			if ret != 0 {
+				fmt.Printf("Npa_add acl fail \n")
+				return -1
+			}
 
-		ret, respcfg := Npa_getacl(cfg.PortId, cfg.Index)
-		if ret != 0 {
-			fmt.Printf("Npa_getacl fail \n")
-			return -1
-		}
+			ret, respcfg := Npa_getacl(cardid, portid, cfg.Index)
+			if ret != 0 {
+				fmt.Printf("Npa_getacl fail \n")
+				return -1
+			}
 
-		if cfg.SrcIp != respcfg.SrcIp ||
-			cfg.SrcIpMask != respcfg.SrcIpMask ||
-			cfg.DstIp != respcfg.DstIp ||
-			cfg.DstIpMask != respcfg.DstIpMask ||
-			cfg.SrcPortMin != respcfg.SrcPortMin ||
-			cfg.SrcPortMax != respcfg.SrcPortMax ||
-			cfg.DstPortMin != respcfg.DstPortMin ||
-			cfg.DstPortMax != respcfg.DstPortMax ||
-			cfg.Index != respcfg.Index ||
-			cfg.Protocol != respcfg.Protocol ||
-			cfg.ActionType != respcfg.ActionType ||
-			cfg.PortId != respcfg.PortId {
-			fmt.Printf("Npa_getacl data fail \n")
-			return -1
-		}
+			if cfg.SrcIp != respcfg.SrcIp ||
+				cfg.SrcIpMask != respcfg.SrcIpMask ||
+				cfg.DstIp != respcfg.DstIp ||
+				cfg.DstIpMask != respcfg.DstIpMask ||
+				cfg.SrcPortMin != respcfg.SrcPortMin ||
+				cfg.SrcPortMax != respcfg.SrcPortMax ||
+				cfg.DstPortMin != respcfg.DstPortMin ||
+				cfg.DstPortMax != respcfg.DstPortMax ||
+				cfg.Index != respcfg.Index ||
+				cfg.Protocol != respcfg.Protocol ||
+				cfg.ActionType != respcfg.ActionType ||
+				cfg.PortId != respcfg.PortId ||
+				cfg.CardId != respcfg.CardId {
+				fmt.Printf("Npa_getacl data fail \n")
+				return -1
+			}
 
-		cfg.SrcIp = 0x0a0a0a0a
-		cfg.SrcIpMask = 0xffffffff
-		cfg.DstIp = 0x0b0b0b0b
-		cfg.DstIpMask = 0xffffffff
-		cfg.SrcPortMin = 10000
-		cfg.SrcPortMax = 20000
-		cfg.DstPortMin = 10000
-		cfg.DstPortMax = 20000
-		cfg.Index = 0
-		cfg.Protocol = 18
-		cfg.ActionType = ACL_ACTION_FW
-		cfg.PortId = portid
+			cfg.SrcIp = 0x0a0a0a0a
+			cfg.SrcIpMask = 0xffffffff
+			cfg.DstIp = 0x0b0b0b0b
+			cfg.DstIpMask = 0xffffffff
+			cfg.SrcPortMin = 10000
+			cfg.SrcPortMax = 20000
+			cfg.DstPortMin = 10000
+			cfg.DstPortMax = 20000
+			cfg.Index = 0
+			cfg.Protocol = 18
+			cfg.ActionType = ACL_ACTION_FW
+			cfg.PortId = portid
+			cfg.CardId = cardid
 
-		ret = Npa_modacl(cfg)
-		if ret != 0 {
-			fmt.Printf("Npa_modacl fail \n")
-			return -1
-		}
+			ret = Npa_modacl(cfg)
+			if ret != 0 {
+				fmt.Printf("Npa_modacl fail \n")
+				return -1
+			}
 
-		ret, respcfg = Npa_getacl(cfg.PortId, cfg.Index)
-		if ret != 0 {
-			fmt.Printf("Npa_getacl fail \n")
-			return -1
-		}
+			ret, respcfg = Npa_getacl(cardid, portid, cfg.Index)
+			if ret != 0 {
+				fmt.Printf("Npa_getacl fail \n")
+				return -1
+			}
 
-		if cfg.SrcIp != respcfg.SrcIp ||
-			cfg.SrcIpMask != respcfg.SrcIpMask ||
-			cfg.DstIp != respcfg.DstIp ||
-			cfg.DstIpMask != respcfg.DstIpMask ||
-			cfg.SrcPortMin != respcfg.SrcPortMin ||
-			cfg.SrcPortMax != respcfg.SrcPortMax ||
-			cfg.DstPortMin != respcfg.DstPortMin ||
-			cfg.DstPortMax != respcfg.DstPortMax ||
-			cfg.Index != respcfg.Index ||
-			cfg.Protocol != respcfg.Protocol ||
-			cfg.ActionType != respcfg.ActionType ||
-			cfg.PortId != respcfg.PortId {
-			fmt.Printf("Npa_getacl data fail \n")
-			return -1
-		}
+			if cfg.SrcIp != respcfg.SrcIp ||
+				cfg.SrcIpMask != respcfg.SrcIpMask ||
+				cfg.DstIp != respcfg.DstIp ||
+				cfg.DstIpMask != respcfg.DstIpMask ||
+				cfg.SrcPortMin != respcfg.SrcPortMin ||
+				cfg.SrcPortMax != respcfg.SrcPortMax ||
+				cfg.DstPortMin != respcfg.DstPortMin ||
+				cfg.DstPortMax != respcfg.DstPortMax ||
+				cfg.Index != respcfg.Index ||
+				cfg.Protocol != respcfg.Protocol ||
+				cfg.ActionType != respcfg.ActionType ||
+				cfg.PortId != respcfg.PortId ||
+				cfg.CardId != respcfg.CardId {
+				fmt.Printf("Npa_getacl data fail \n")
+				return -1
+			}
 
-		ret = Npa_delacl(cfg.PortId, cfg.Index)
-		if ret != 0 {
-			fmt.Printf("Npa_delacl fail \n")
-			return -1
-		}
+			ret = Npa_delacl(cardid, portid, cfg.Index)
+			if ret != 0 {
+				fmt.Printf("Npa_delacl fail \n")
+				return -1
+			}
 
-		ret, _ = Npa_getacl(cfg.PortId, cfg.Index)
-		if ret == 0 {
-			fmt.Printf("Npa_getacl fail \n")
-			return -1
+			ret, _ = Npa_getacl(cardid, portid, cfg.Index)
+			if ret == 0 {
+				fmt.Printf("Npa_getacl fail \n")
+				return -1
+			}
 		}
 	}
+
 	fmt.Println("Npa acl config Test Success")
 
 	return 0
@@ -292,26 +328,26 @@ func Npa_InitCli() int {
 	return 0
 }
 
-func Npa_CfgDedup(portid uint16, dedupflag uint64, timeout uint64) int {
+func Npa_CfgDedup(cardid uint16, portid uint16, dedupflag uint64, timeout uint64) int {
 	var decfg DedupCfg
 
-	if portid >= Npa_max_port_num {
+	if cardid >= Npa_max_card_num || portid >= Npa_max_port_num {
 		fmt.Println("Inpara Err, portid:", portid, "dedupflag:", dedupflag)
 		return -1
 	}
-	ret := Npa_clrdedup(portid)
+	ret := Npa_clrdedup(cardid, portid)
 	if ret != 0 {
 		fmt.Printf("Npa Dedup Test: clr dedup cfg Fail \n")
 		return -1
 	}
 	decfg.dedupflag = dedupflag
 	decfg.timeout = timeout
-	ret = Npa_setdedup(portid, decfg)
+	ret = Npa_setdedup(cardid, portid, decfg)
 	if ret != 0 {
 		fmt.Printf("Npa Dedup Test: set dedup cfg Fail \n")
 		return -1
 	}
-	ret, respdecfg := Npa_getdedup(portid)
+	ret, respdecfg := Npa_getdedup(cardid, portid)
 	if ret != 0 {
 		fmt.Printf("Npa Dedup Test: get dedup cfg Fail \n")
 		return -1
@@ -325,10 +361,10 @@ func Npa_CfgDedup(portid uint16, dedupflag uint64, timeout uint64) int {
 	return 0
 }
 
-func Npa_TestPacketMac(portid uint16, testindex uint64) int {
+func Npa_TestPacketMac(cardid uint16, portid uint16, testindex uint64) int {
 	var cfg MacCfg
 
-	Npa_clrstat(portid)
+	Npa_clrstat(cardid, portid)
 
 	cfg.srcmacflag = 1
 	cfg.dstmacflag = 1
@@ -345,17 +381,17 @@ func Npa_TestPacketMac(portid uint16, testindex uint64) int {
 	cfg.dstmac[4] = 44
 	cfg.dstmac[5] = 55
 
-	ret := Npa_setmacentry(portid, cfg)
+	ret := Npa_setmacentry(cardid, portid, cfg)
 	if ret != 0 {
 		fmt.Printf("Npa_setmacentry Fail \n")
 		return -1
 	}
-	ret = common.Com_sendpcap(npa_iface, npa_pcappath+testpcap[testindex], npa_fast)
+	ret = common.Com_sendpcap(testpara[cardid].npa_iface[portid], testpara[cardid].npa_pcappath[portid]+testpcap[testindex], true)
 	if ret != 0 {
 		fmt.Printf("Com_sendpcap Fail \n")
 		return -1
 	}
-	ret, stat := Npa_getstat(portid)
+	ret, stat := Npa_getstat(cardid, portid)
 	if ret != 0 {
 		fmt.Printf("Npa_getstat Fail \n")
 		return -1
@@ -365,19 +401,19 @@ func Npa_TestPacketMac(portid uint16, testindex uint64) int {
 		return -1
 	}
 
-	Npa_clrstat(portid)
+	Npa_clrstat(cardid, portid)
 
-	ret = Npa_clrmacentry(portid)
+	ret = Npa_clrmacentry(cardid, portid)
 	if ret != 0 {
 		fmt.Printf("Npa_clrmacentry Fail \n")
 		return -1
 	}
-	ret = common.Com_sendpcap(npa_iface, npa_pcappath+testpcap[testindex], npa_fast)
+	ret = common.Com_sendpcap(testpara[cardid].npa_iface[portid], testpara[cardid].npa_pcappath[portid]+testpcap[testindex], true)
 	if ret != 0 {
 		fmt.Printf("Com_sendpcap Fail \n")
 		return -1
 	}
-	ret, stat = Npa_getstat(portid)
+	ret, stat = Npa_getstat(cardid, portid)
 	if ret != 0 {
 		fmt.Printf("Npa_getstat Fail \n")
 		return -1
@@ -389,20 +425,20 @@ func Npa_TestPacketMac(portid uint16, testindex uint64) int {
 	return 0
 }
 
-func Npa_TestPacketDedup(portid uint16, dedupflag uint64, testindex uint64) int {
-	Npa_clrstat(portid)
+func Npa_TestPacketDedup(cardid uint16, portid uint16, dedupflag uint64, testindex uint64) int {
+	Npa_clrstat(cardid, portid)
 
-	ret := Npa_CfgDedup(portid, dedupflag, 10)
+	ret := Npa_CfgDedup(cardid, portid, dedupflag, 10)
 	if ret != 0 {
 		fmt.Printf("Npa Dedup Test: get dedup cfg Fail \n")
 		return -1
 	}
-	ret = common.Com_sendpcap(npa_iface, npa_pcappath+testpcap[testindex], npa_fast)
+	ret = common.Com_sendpcap(testpara[cardid].npa_iface[portid], testpara[cardid].npa_pcappath[portid]+testpcap[testindex], true)
 	if ret != 0 {
 		fmt.Printf("Com_sendpcap Fail \n")
 		return -1
 	}
-	ret, stat := Npa_getstat(portid)
+	ret, stat := Npa_getstat(cardid, portid)
 	if ret != 0 {
 		fmt.Printf("Npa_getstat Fail \n")
 		return -1
@@ -412,19 +448,19 @@ func Npa_TestPacketDedup(portid uint16, dedupflag uint64, testindex uint64) int 
 		return -1
 	}
 
-	Npa_clrstat(portid)
+	Npa_clrstat(cardid, portid)
 
-	ret = Npa_CfgDedup(portid, 0, 0)
+	ret = Npa_CfgDedup(cardid, portid, 0, 0)
 	if ret != 0 {
 		fmt.Printf("Npa Dedup Test: get dedup cfg Fail \n")
 		return -1
 	}
-	ret = common.Com_sendpcap(npa_iface, npa_pcappath+testpcap[testindex], npa_fast)
+	ret = common.Com_sendpcap(testpara[cardid].npa_iface[portid], testpara[cardid].npa_pcappath[portid]+testpcap[testindex], true)
 	if ret != 0 {
 		fmt.Printf("Com_sendpcap Fail \n")
 		return -1
 	}
-	ret, stat = Npa_getstat(portid)
+	ret, stat = Npa_getstat(cardid, portid)
 	if ret != 0 {
 		fmt.Printf("Npa_getstat Fail \n")
 		return -1
@@ -436,12 +472,12 @@ func Npa_TestPacketDedup(portid uint16, dedupflag uint64, testindex uint64) int 
 	return 0
 }
 
-func Npa_TestPacketAcl(portid uint16, testindex uint64) int {
+func Npa_TestPacketAcl(cardid uint16, portid uint16, testindex uint64) int {
 	var fname string
 	var cfg AclCfg
 
-	fname = npa_pcappath + testpcap[testindex]
-	Npa_clrstat(portid)
+	fname = testpara[cardid].npa_pcappath[portid] + testpcap[testindex]
+	Npa_clrstat(cardid, portid)
 
 	ret, SrcIp, DstIp, SrcPort, DstPort, Protocol := common.Com_getpcapinfo(fname)
 
@@ -457,6 +493,7 @@ func Npa_TestPacketAcl(portid uint16, testindex uint64) int {
 	cfg.Protocol = Protocol
 	cfg.ActionType = ACL_ACTION_DROP
 	cfg.PortId = portid
+	cfg.CardId = cardid
 
 	ret = Npa_addacl(cfg)
 	if ret != 0 {
@@ -464,12 +501,12 @@ func Npa_TestPacketAcl(portid uint16, testindex uint64) int {
 		return -1
 	}
 
-	ret = common.Com_sendpcap(npa_iface, fname, npa_fast)
+	ret = common.Com_sendpcap(testpara[cardid].npa_iface[portid], fname, true)
 	if ret != 0 {
 		fmt.Printf("Com_sendpcap Fail \n")
 		return -1
 	}
-	ret, stat := Npa_getstat(portid)
+	ret, stat := Npa_getstat(cardid, portid)
 	if ret != 0 {
 		fmt.Printf("Npa_getstat Fail \n")
 		return -1
@@ -479,18 +516,18 @@ func Npa_TestPacketAcl(portid uint16, testindex uint64) int {
 		return -1
 	}
 
-	ret = Npa_delacl(cfg.PortId, cfg.Index)
+	ret = Npa_delacl(cardid, portid, cfg.Index)
 	if ret != 0 {
 		fmt.Printf("Npa_delacl fail \n")
 		return -1
 	}
-	Npa_clrstat(portid)
-	ret = common.Com_sendpcap(npa_iface, fname, npa_fast)
+	Npa_clrstat(cardid, portid)
+	ret = common.Com_sendpcap(testpara[cardid].npa_iface[portid], fname, true)
 	if ret != 0 {
 		fmt.Printf("Com_sendpcap Fail \n")
 		return -1
 	}
-	ret, stat = Npa_getstat(portid)
+	ret, stat = Npa_getstat(cardid, portid)
 	if ret != 0 {
 		fmt.Printf("Npa_getstat Fail \n")
 		return -1
@@ -503,111 +540,107 @@ func Npa_TestPacketAcl(portid uint16, testindex uint64) int {
 	return 0
 }
 
-func Npa_TestPacket(portid uint16) int {
+func Npa_TestPacket() int {
 	var ret int = 0
+	var cardid uint16
+	var portid uint16
 
-	for index := NPA_TEST_ACL; index <= NPA_TEST_MAC_MODIFED; index++ {
-		switch index {
-		case NPA_TEST_ACL:
-			ret = Npa_TestPacketAcl(portid, uint64(index))
-			if ret != 0 {
-				fmt.Printf("NPA_TEST_ACL Fail \n")
-				return -1
-			} else {
-				fmt.Printf("NPA_TEST_ACL Success \n")
+	for cardid = 0; cardid < Npa_max_card_num; cardid++ {
+		for portid = 0; portid < Npa_max_port_num; portid++ {
+			for index := NPA_TEST_ACL; index <= NPA_TEST_MAC_MODIFED; index++ {
+				switch index {
+				case NPA_TEST_ACL:
+					ret = Npa_TestPacketAcl(cardid, portid, uint64(index))
+					if ret != 0 {
+						fmt.Printf("NPA_TEST_ACL Fail \n")
+						return -1
+					} else {
+						fmt.Printf("NPA_TEST_ACL Success \n")
+					}
+				case NPA_TEST_DEDUP_NO_IGNORE:
+					ret = Npa_TestPacketDedup(cardid, portid, 0, uint64(index))
+					if ret != 0 {
+						fmt.Printf("NPA_TEST_DEDUP_NO_IGNORE Fail \n")
+						return -1
+					} else {
+						fmt.Printf("NPA_TEST_DEDUP_NO_IGNORE Success \n")
+					}
+				case NPA_TEST_DEDUP_IGNORE_MAC:
+					ret = Npa_TestPacketDedup(cardid, portid, Dedup_ignore_mac, uint64(index))
+					if ret != 0 {
+						fmt.Printf("NPA_TEST_DEDUP_IGNORE_MAC Fail \n")
+						return -1
+					} else {
+						fmt.Printf("NPA_TEST_DEDUP_IGNORE_MAC Success \n")
+					}
+				case NPA_TEST_DEDUP_IGNORE_TTL:
+					ret = Npa_TestPacketDedup(cardid, portid, Dedup_ignore_ttl, uint64(index))
+					if ret != 0 {
+						fmt.Printf("NPA_TEST_DEDUP_IGNORE_TTL Fail \n")
+						return -1
+					} else {
+						fmt.Printf("NPA_TEST_DEDUP_IGNORE_TTL Success \n")
+					}
+				case NPA_TEST_DEDUP_IGNORE_SRCIP:
+					ret = Npa_TestPacketDedup(cardid, portid, Dedup_ignore_srcip, uint64(index))
+					if ret != 0 {
+						fmt.Printf("NPA_TEST_DEDUP_IGNORE_SRCIP Fail \n")
+						return -1
+					} else {
+						fmt.Printf("NPA_TEST_DEDUP_IGNORE_SRCIP Success \n")
+					}
+				case NPA_TEST_DEDUP_IGNORE_DSTIP:
+					ret = Npa_TestPacketDedup(cardid, portid, Dedup_ignore_dstip, uint64(index))
+					if ret != 0 {
+						fmt.Printf("NPA_TEST_DEDUP_IGNORE_DSTIP Fail \n")
+						return -1
+					} else {
+						fmt.Printf("NPA_TEST_DEDUP_IGNORE_DSTIP Success \n")
+					}
+				case NPA_TEST_DEDUP_IGNORE_SRCPORT:
+					ret = Npa_TestPacketDedup(cardid, portid, Dedup_ignore_srcport, uint64(index))
+					if ret != 0 {
+						fmt.Printf("NPA_TEST_DEDUP_IGNORE_SRCPORT Fail \n")
+						return -1
+					} else {
+						fmt.Printf("NPA_TEST_DEDUP_IGNORE_SRCPORT Success \n")
+					}
+				case NPA_TEST_DEDUP_IGNORE_DSTPORT:
+					ret = Npa_TestPacketDedup(cardid, portid, Dedup_ignore_dstport, uint64(index))
+					if ret != 0 {
+						fmt.Printf("NPA_TEST_DEDUP_IGNORE_DSTPORT Fail \n")
+						return -1
+					} else {
+						fmt.Printf("NPA_TEST_DEDUP_IGNORE_DSTPORT Success \n")
+					}
+				case NPA_TEST_DEDUP_IGNORE_VXLAN:
+					ret = Npa_TestPacketDedup(cardid, portid, Dedup_ignore_vxlan, uint64(index))
+					if ret != 0 {
+						fmt.Printf("NPA_TEST_DEDUP_IGNORE_VXLAN Fail \n")
+						return -1
+					} else {
+						fmt.Printf("NPA_TEST_DEDUP_IGNORE_VXLAN Success \n")
+					}
+				case NPA_TEST_MAC_MODIFED:
+					ret = Npa_TestPacketMac(cardid, portid, uint64(index))
+					if ret != 0 {
+						fmt.Printf("NPA_TEST_MAC_MODIFED Fail \n")
+						return -1
+					} else {
+						fmt.Printf("NPA_TEST_MAC_MODIFED Success \n")
+					}
+				default:
+					fmt.Println("err para, index:", index)
+				}
 			}
-		case NPA_TEST_DEDUP_NO_IGNORE:
-			ret = Npa_TestPacketDedup(portid, 0, uint64(index))
-			if ret != 0 {
-				fmt.Printf("NPA_TEST_DEDUP_NO_IGNORE Fail \n")
-				return -1
-			} else {
-				fmt.Printf("NPA_TEST_DEDUP_NO_IGNORE Success \n")
-			}
-		case NPA_TEST_DEDUP_IGNORE_MAC:
-			ret = Npa_TestPacketDedup(portid, Dedup_ignore_mac, uint64(index))
-			if ret != 0 {
-				fmt.Printf("NPA_TEST_DEDUP_IGNORE_MAC Fail \n")
-				return -1
-			} else {
-				fmt.Printf("NPA_TEST_DEDUP_IGNORE_MAC Success \n")
-			}
-		case NPA_TEST_DEDUP_IGNORE_TTL:
-			ret = Npa_TestPacketDedup(portid, Dedup_ignore_ttl, uint64(index))
-			if ret != 0 {
-				fmt.Printf("NPA_TEST_DEDUP_IGNORE_TTL Fail \n")
-				return -1
-			} else {
-				fmt.Printf("NPA_TEST_DEDUP_IGNORE_TTL Success \n")
-			}
-		case NPA_TEST_DEDUP_IGNORE_SRCIP:
-			ret = Npa_TestPacketDedup(portid, Dedup_ignore_srcip, uint64(index))
-			if ret != 0 {
-				fmt.Printf("NPA_TEST_DEDUP_IGNORE_SRCIP Fail \n")
-				return -1
-			} else {
-				fmt.Printf("NPA_TEST_DEDUP_IGNORE_SRCIP Success \n")
-			}
-		case NPA_TEST_DEDUP_IGNORE_DSTIP:
-			ret = Npa_TestPacketDedup(portid, Dedup_ignore_dstip, uint64(index))
-			if ret != 0 {
-				fmt.Printf("NPA_TEST_DEDUP_IGNORE_DSTIP Fail \n")
-				return -1
-			} else {
-				fmt.Printf("NPA_TEST_DEDUP_IGNORE_DSTIP Success \n")
-			}
-		case NPA_TEST_DEDUP_IGNORE_SRCPORT:
-			ret = Npa_TestPacketDedup(portid, Dedup_ignore_srcport, uint64(index))
-			if ret != 0 {
-				fmt.Printf("NPA_TEST_DEDUP_IGNORE_SRCPORT Fail \n")
-				return -1
-			} else {
-				fmt.Printf("NPA_TEST_DEDUP_IGNORE_SRCPORT Success \n")
-			}
-		case NPA_TEST_DEDUP_IGNORE_DSTPORT:
-			ret = Npa_TestPacketDedup(portid, Dedup_ignore_dstport, uint64(index))
-			if ret != 0 {
-				fmt.Printf("NPA_TEST_DEDUP_IGNORE_DSTPORT Fail \n")
-				return -1
-			} else {
-				fmt.Printf("NPA_TEST_DEDUP_IGNORE_DSTPORT Success \n")
-			}
-		case NPA_TEST_DEDUP_IGNORE_VXLAN:
-			ret = Npa_TestPacketDedup(portid, Dedup_ignore_vxlan, uint64(index))
-			if ret != 0 {
-				fmt.Printf("NPA_TEST_DEDUP_IGNORE_VXLAN Fail \n")
-				return -1
-			} else {
-				fmt.Printf("NPA_TEST_DEDUP_IGNORE_VXLAN Success \n")
-			}
-		case NPA_TEST_MAC_MODIFED:
-			ret = Npa_TestPacketMac(portid, uint64(index))
-			if ret != 0 {
-				fmt.Printf("NPA_TEST_MAC_MODIFED Fail \n")
-				return -1
-			} else {
-				fmt.Printf("NPA_TEST_MAC_MODIFED Success \n")
-			}
-		default:
-			fmt.Println("err para, index:", index)
 		}
 	}
 
 	return 0
 }
 
-func Npa_init(iface string, pcappath string, fast bool) int {
+func Npa_init() int {
 	var ret_c C.int
-
-	fmt.Println(iface, pcappath, fast)
-
-	npa_iface = iface
-	npa_pcappath = pcappath
-	npa_fast = fast
-
-	//	for index := NPA_TEST_ACL; index <= NPA_TEST_MAC_MODIFED; index++ {
-	//		fmt.Println(index, npa_pcappath+testpcap[index])
-	//	}
 
 	ret_c = C.Cm_NicIsOnLine()
 	if ret_c != 1 {

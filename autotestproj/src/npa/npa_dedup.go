@@ -32,10 +32,10 @@ const (
 	Dedup_ignore_vxlan   = 0x0080
 )
 
-func Npa_setdedup(portid uint16, cfg DedupCfg) (ret int) {
+func Npa_setdedup(cardid uint16, portid uint16, cfg DedupCfg) (ret int) {
 	var ret_c C.int
 
-	ret_c = C.NpaSetDedup((C.ushort)(portid), (C.ulong)(cfg.dedupflag), (C.ulong)(cfg.timeout))
+	ret_c = C.NpaSetDedup((C.ushort)(cardid), (C.ushort)(portid), (C.ulong)(cfg.dedupflag), (C.ulong)(cfg.timeout))
 	if ret_c != 0 {
 		ret = -1
 	} else {
@@ -45,10 +45,10 @@ func Npa_setdedup(portid uint16, cfg DedupCfg) (ret int) {
 	return ret
 }
 
-func Npa_getdedup(portid uint16) (ret int, cfg DedupCfg) {
+func Npa_getdedup(cardid uint16, portid uint16) (ret int, cfg DedupCfg) {
 	var ret_c C.int
 
-	ret_c = C.NpaGetDedup((C.ushort)(portid), (*C.ulong)(&cfg.dedupflag), (*C.ulong)(&cfg.timeout))
+	ret_c = C.NpaGetDedup((C.ushort)(cardid), (C.ushort)(portid), (*C.ulong)(&cfg.dedupflag), (*C.ulong)(&cfg.timeout))
 	if ret_c != 0 {
 		ret = -1
 	} else {
@@ -58,10 +58,10 @@ func Npa_getdedup(portid uint16) (ret int, cfg DedupCfg) {
 	return ret, cfg
 }
 
-func Npa_clrdedup(portid uint16) (ret int) {
+func Npa_clrdedup(cardid uint16, portid uint16) (ret int) {
 	var ret_c C.int
 
-	ret_c = C.NpaClrDedup((C.ushort)(portid))
+	ret_c = C.NpaClrDedup((C.ushort)(cardid), (C.ushort)(portid))
 	if ret_c != 0 {
 		ret = -1
 	} else {
