@@ -1,9 +1,11 @@
 package main
 
 import (
-	"bubble"
+	// "bubble"
 	"fmt"
+	// "insert"
 	"os"
+	"quick"
 	"strconv"
 )
 
@@ -26,7 +28,7 @@ func main() {
 		fmt.Printf("before array[%d] = %d \r\n", index, array[index])
 	}
 
-	bubble.Method1(array, arraylen)
+	quick.Sort(array, 0, arraylen-1)
 
 	for index := 0; index < arraylen; index++ {
 		fmt.Printf("after array[%d] = %d \r\n", index, array[index])

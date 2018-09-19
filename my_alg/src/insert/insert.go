@@ -1,4 +1,4 @@
-package bubble
+package insert
 
 /*
 	var array = make([]int, 100, 100)
@@ -19,38 +19,37 @@ package bubble
 		fmt.Printf("before array[%d] = %d \r\n", index, array[index])
 	}
 
-	bubble.Sort1(array, arraylen)
+	insert.Sort1(array, arraylen)
 
 	for index := 0; index < arraylen; index++ {
 		fmt.Printf("after array[%d] = %d \r\n", index, array[index])
 	}
 
-	bubble.Sort2(array, arraylen)
+	insert.Sort2(array, arraylen)
 
 	for index := 0; index < arraylen; index++ {
 		fmt.Printf("after array[%d] = %d \r\n", index, array[index])
 	}
 */
-
 import (
 	"swap"
 )
 
-func Sort1(array []int, arraylen int) {
-	for i := 0; i < arraylen-1; i++ {
-		for j := 0; j < arraylen-1-i; j++ {
-			if array[j] < array[j+1] {
-				swap.Swap2(array, j, j+1)
+func Sort1(a []int, arraylen int) {
+	for i := 1; i < arraylen; i++ {
+		for j := i; j > 0; j-- {
+			if a[j] < a[j-1] {
+				swap.Swap2(a, j, j-1)
 			}
 		}
 	}
 }
 
-func Sort2(array []int, arraylen int) {
-	for i := 0; i < arraylen-1; i++ {
-		for j := 0; j < arraylen-1-i; j++ {
-			if array[j] > array[j+1] {
-				swap.Swap2(array, j, j+1)
+func Sort2(a []int, arraylen int) {
+	for i := 1; i < arraylen; i++ {
+		for j := i; j > 0; j-- {
+			if a[j] > a[j-1] {
+				swap.Swap2(a, j, j-1)
 			}
 		}
 	}
