@@ -58,11 +58,11 @@ var testpcap = [NPA_TEST_MAC_MODIFED + 1]string{
 
 var testpara = []NpaTestCfgInfo{
 	NpaTestCfgInfo{
-		npa_iface:    [Npa_max_port_num]string{"p2p1_0", "p2p2_0"},
+		npa_iface:    [Npa_max_port_num]string{"p4p1_0", "p4p2_0"},
 		npa_pcappath: [Npa_max_port_num]string{"/home/ych/pcap/", "/home/ych/pcap/"},
 	},
 	NpaTestCfgInfo{
-		npa_iface:    [Npa_max_port_num]string{"p4p1_0", "p4p2_0"},
+		npa_iface:    [Npa_max_port_num]string{"p2p1_0", "p2p2_0"},
 		npa_pcappath: [Npa_max_port_num]string{"/home/ych/pcap/", "/home/ych/pcap/"},
 	},
 }
@@ -120,10 +120,10 @@ func Npa_TestConfig() int {
 				fmt.Printf("Npa Dedup Test: clr dedup cfg data Fail \n")
 				return ret
 			}
+
+			fmt.Printf("card:%d, port:%d, Npa Dedup config Test Success\n", cardid, portid)
 		}
 	}
-
-	fmt.Println("Npa Dedup config Test Success")
 
 	//test modifed mac config
 	for cardid = 0; cardid < Npa_max_card_num; cardid++ {
@@ -197,10 +197,10 @@ func Npa_TestConfig() int {
 					return -1
 				}
 			}
+
+			fmt.Printf("card:%d, port:%d, Npa modifed mac config Test Success\n", cardid, portid)
 		}
 	}
-
-	fmt.Println("Npa modifed mac config Test Success")
 
 	//test modifed acl config
 	for cardid = 0; cardid < Npa_max_card_num; cardid++ {
@@ -304,10 +304,10 @@ func Npa_TestConfig() int {
 				fmt.Printf("Npa_getacl fail \n")
 				return -1
 			}
+
+			fmt.Printf("card:%d, port:%d, Npa acl config Test Success \n", cardid, portid)
 		}
 	}
-
-	fmt.Println("Npa acl config Test Success")
 
 	return 0
 }
@@ -552,85 +552,85 @@ func Npa_TestPacket() int {
 				case NPA_TEST_ACL:
 					ret = Npa_TestPacketAcl(cardid, portid, uint64(index))
 					if ret != 0 {
-						fmt.Printf("NPA_TEST_ACL Fail \n")
+						fmt.Printf("card:%d, port:%d, NPA_TEST_ACL Fail \n", cardid, portid)
 						return -1
 					} else {
-						fmt.Printf("NPA_TEST_ACL Success \n")
+						fmt.Printf("card:%d, port:%d, NPA_TEST_ACL Success \n", cardid, portid)
 					}
 				case NPA_TEST_DEDUP_NO_IGNORE:
 					ret = Npa_TestPacketDedup(cardid, portid, 0, uint64(index))
 					if ret != 0 {
-						fmt.Printf("NPA_TEST_DEDUP_NO_IGNORE Fail \n")
+						fmt.Printf("card:%d, port:%d, NPA_TEST_DEDUP_NO_IGNORE Fail \n", cardid, portid)
 						return -1
 					} else {
-						fmt.Printf("NPA_TEST_DEDUP_NO_IGNORE Success \n")
+						fmt.Printf("card:%d, port:%d, NPA_TEST_DEDUP_NO_IGNORE Success \n", cardid, portid)
 					}
 				case NPA_TEST_DEDUP_IGNORE_MAC:
 					ret = Npa_TestPacketDedup(cardid, portid, Dedup_ignore_mac, uint64(index))
 					if ret != 0 {
-						fmt.Printf("NPA_TEST_DEDUP_IGNORE_MAC Fail \n")
+						fmt.Printf("card:%d, port:%d, NPA_TEST_DEDUP_IGNORE_MAC Fail \n", cardid, portid)
 						return -1
 					} else {
-						fmt.Printf("NPA_TEST_DEDUP_IGNORE_MAC Success \n")
+						fmt.Printf("card:%d, port:%d, NPA_TEST_DEDUP_IGNORE_MAC Success \n", cardid, portid)
 					}
 				case NPA_TEST_DEDUP_IGNORE_TTL:
 					ret = Npa_TestPacketDedup(cardid, portid, Dedup_ignore_ttl, uint64(index))
 					if ret != 0 {
-						fmt.Printf("NPA_TEST_DEDUP_IGNORE_TTL Fail \n")
+						fmt.Printf("card:%d, port:%d, NPA_TEST_DEDUP_IGNORE_TTL Fail \n", cardid, portid)
 						return -1
 					} else {
-						fmt.Printf("NPA_TEST_DEDUP_IGNORE_TTL Success \n")
+						fmt.Printf("card:%d, port:%d, NPA_TEST_DEDUP_IGNORE_TTL Success \n", cardid, portid)
 					}
 				case NPA_TEST_DEDUP_IGNORE_SRCIP:
 					ret = Npa_TestPacketDedup(cardid, portid, Dedup_ignore_srcip, uint64(index))
 					if ret != 0 {
-						fmt.Printf("NPA_TEST_DEDUP_IGNORE_SRCIP Fail \n")
+						fmt.Printf("card:%d, port:%d, NPA_TEST_DEDUP_IGNORE_SRCIP Fail \n", cardid, portid)
 						return -1
 					} else {
-						fmt.Printf("NPA_TEST_DEDUP_IGNORE_SRCIP Success \n")
+						fmt.Printf("card:%d, port:%d, NPA_TEST_DEDUP_IGNORE_SRCIP Success \n", cardid, portid)
 					}
 				case NPA_TEST_DEDUP_IGNORE_DSTIP:
 					ret = Npa_TestPacketDedup(cardid, portid, Dedup_ignore_dstip, uint64(index))
 					if ret != 0 {
-						fmt.Printf("NPA_TEST_DEDUP_IGNORE_DSTIP Fail \n")
+						fmt.Printf("card:%d, port:%d, NPA_TEST_DEDUP_IGNORE_DSTIP Fail \n", cardid, portid)
 						return -1
 					} else {
-						fmt.Printf("NPA_TEST_DEDUP_IGNORE_DSTIP Success \n")
+						fmt.Printf("card:%d, port:%d, NPA_TEST_DEDUP_IGNORE_DSTIP Success \n", cardid, portid)
 					}
 				case NPA_TEST_DEDUP_IGNORE_SRCPORT:
 					ret = Npa_TestPacketDedup(cardid, portid, Dedup_ignore_srcport, uint64(index))
 					if ret != 0 {
-						fmt.Printf("NPA_TEST_DEDUP_IGNORE_SRCPORT Fail \n")
+						fmt.Printf("card:%d, port:%d, NPA_TEST_DEDUP_IGNORE_SRCPORT Fail \n", cardid, portid)
 						return -1
 					} else {
-						fmt.Printf("NPA_TEST_DEDUP_IGNORE_SRCPORT Success \n")
+						fmt.Printf("card:%d, port:%d, NPA_TEST_DEDUP_IGNORE_SRCPORT Success \n", cardid, portid)
 					}
 				case NPA_TEST_DEDUP_IGNORE_DSTPORT:
 					ret = Npa_TestPacketDedup(cardid, portid, Dedup_ignore_dstport, uint64(index))
 					if ret != 0 {
-						fmt.Printf("NPA_TEST_DEDUP_IGNORE_DSTPORT Fail \n")
+						fmt.Printf("card:%d, port:%d, NPA_TEST_DEDUP_IGNORE_DSTPORT Fail \n", cardid, portid)
 						return -1
 					} else {
-						fmt.Printf("NPA_TEST_DEDUP_IGNORE_DSTPORT Success \n")
+						fmt.Printf("card:%d, port:%d, NPA_TEST_DEDUP_IGNORE_DSTPORT Success \n", cardid, portid)
 					}
 				case NPA_TEST_DEDUP_IGNORE_VXLAN:
 					ret = Npa_TestPacketDedup(cardid, portid, Dedup_ignore_vxlan, uint64(index))
 					if ret != 0 {
-						fmt.Printf("NPA_TEST_DEDUP_IGNORE_VXLAN Fail \n")
+						fmt.Printf("card:%d, port:%d, NPA_TEST_DEDUP_IGNORE_VXLAN Fail \n", cardid, portid)
 						return -1
 					} else {
-						fmt.Printf("NPA_TEST_DEDUP_IGNORE_VXLAN Success \n")
+						fmt.Printf("card:%d, port:%d, NPA_TEST_DEDUP_IGNORE_VXLAN Success \n", cardid, portid)
 					}
 				case NPA_TEST_MAC_MODIFED:
 					ret = Npa_TestPacketMac(cardid, portid, uint64(index))
 					if ret != 0 {
-						fmt.Printf("NPA_TEST_MAC_MODIFED Fail \n")
+						fmt.Printf("card:%d, port:%d, NPA_TEST_MAC_MODIFED Fail \n", cardid, portid)
 						return -1
 					} else {
-						fmt.Printf("NPA_TEST_MAC_MODIFED Success \n")
+						fmt.Printf("card:%d, port:%d, NPA_TEST_MAC_MODIFED Success \n", cardid, portid)
 					}
 				default:
-					fmt.Println("err para, index:", index)
+					fmt.Println("card:%d, port:%d, err para, index:", cardid, portid, index)
 				}
 			}
 		}
